@@ -1,60 +1,48 @@
-import React, { useState } from 'react';
-import { GoogleMap, LoadScript, Marker, Polyline } from '@react-google-maps/api';
+import React, { useCallback } from 'react';
+import { GoogleMap, useLoadScript, Marker, Polyline } from '@react-google-maps/api';
+import config from '../config.json';
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '400px'
-};
+const mapContainerStyle = { width: '100%', height: '400px' };
+const center = { lat: -33.8568, lng: 151.2153 }; // Sydney's coordinates
 
-const center = {
-  lat: -33.8568, // Sydney's latitude
-  lng: 151.2153  // Sydney's longitude
-};
+const BirthdayMap = ({ locations, currentStep, onVenueClick }) => {
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: config.GOOGLE_MAPS_API_KEY
+  });
 
-const locations = [
-  { name: "The Glenmore Hotel", lat: -33.8599, lng: 151.2090 },
-  { name: "Maybe Sammy", lat: -33.8614, lng: 151.2082 },
-  { name: "Tayim", lat: -33.8608, lng: 151.2082 },
-  { name: "La Renaissance Patisserie", lat: -33.8593, lng: 151.2080 }
-];
+  const getMarkerIcon = useCallback((name) => ({
+    url: `/venue-icons/${name.toLowerCase().replace(' ', '-')}.png`,
+    scaledSize: isLoaded ? new window.google.maps.Size(40, 40) : null
+  }), [isLoaded]);
 
-const BirthdayMap = () => {
-  const [selectedLocation, setSelectedLocation] = useState(null);
+  const getMarkerAnimation = useCallback((index) => (
+    isLoaded && index === currentStep ? window.google.maps.Animation.BOUNCE : null
+  ), [isLoaded, currentStep]);
+
+  if (loadError) return <div>Error loading maps</div>;
+  if (!isLoaded) return <div>Loading maps</div>;
 
   return (
-    <LoadScript googleMapsApiKey="AIzaSyBMRljFnpbjoFMJDzO1NzDpJrq6Wm_F0jk">
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={center}
-        zoom={15}
-      >
-        {locations.map((location, index) => (
-          <Marker
-            key={index}
-            position={{ lat: location.lat, lng: location.lng }}
-            onClick={() => setSelectedLocation(location)}
-          />
-        ))}
-        
-        <Polyline
-          path={locations.map(loc => ({ lat: loc.lat, lng: loc.lng }))}
-          options={{ strokeColor: "#FF0000" }}
+    <GoogleMap
+      mapContainerStyle={mapContainerStyle}
+      center={center}
+      zoom={15}
+    >
+      {locations.map((location, index) => (
+        <Marker
+          key={index}
+          position={{ lat: location.lat, lng: location.lng }}
+          onClick={() => onVenueClick(location)}
+          icon={getMarkerIcon(location.name)}
+          animation={getMarkerAnimation(index)}
         />
-
-        {selectedLocation && (
-          <div style={{ 
-            position: 'absolute', 
-            top: '10px', 
-            left: '10px', 
-            backgroundColor: 'white', 
-            padding: '10px',
-            borderRadius: '5px'
-          }}>
-            <h3>{selectedLocation.name}</h3>
-          </div>
-        )}
-      </GoogleMap>
-    </LoadScript>
+      ))}
+      
+      <Polyline
+        path={locations.slice(0, currentStep + 1).map(loc => ({ lat: loc.lat, lng: loc.lng }))}
+        options={{ strokeColor: "#FF0000" }}
+      />
+    </GoogleMap>
   );
 };
 
