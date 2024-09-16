@@ -31,11 +31,11 @@ function App() {
           }
           return nextStep;
         });
-      }, 3000); // Move to next location every 3 seconds
+      }, 5000); // Move to next location every 5 seconds
     }
     return () => clearInterval(timer);
   }, [playState]);
-
+  
   const handlePlayPause = () => {
     setPlayState(state => state === 'playing' ? 'paused' : 'playing');
   };
