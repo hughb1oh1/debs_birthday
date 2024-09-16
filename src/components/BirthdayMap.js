@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GoogleMap, useLoadScript } from '@react-google-maps/api';
 import config from '../config.json';
 
-const mapContainerStyle = { width: '100%', height: '400px' };
+const mapContainerStyle = { width: '100%', height: '100%' };
 const center = { lat: -33.8568, lng: 151.2153 }; // Sydney's coordinates
 
-const BirthdayMap = ({ locations, guests = [], currentStep }) => {
+const BirthdayMap = ({ locations, guests = [], currentStep, focusedGuest }) => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: config.GOOGLE_MAPS_API_KEY
   });
@@ -78,8 +78,15 @@ const BirthdayMap = ({ locations, guests = [], currentStep }) => {
         zIndex: 0 // Ensure polyline is below all markers
       });
       polyline.setMap(mapInstance);
+
+      // Focus on guest if focusedGuest is set
+      if (focusedGuest !== null) {
+        const guestPosition = locations[focusedGuest % locations.length];
+        mapInstance.panTo({ lat: guestPosition.lat, lng: guestPosition.lng });
+        mapInstance.setZoom(18);
+      }
     }
-  }, [mapInstance, locations, guests, currentStep]);
+  }, [mapInstance, locations, guests, currentStep, focusedGuest]);
 
   if (loadError) {
     console.error('Error loading maps:', loadError);

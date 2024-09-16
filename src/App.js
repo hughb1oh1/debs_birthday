@@ -18,6 +18,7 @@ const guests = [
 
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
+  const [focusedGuest, setFocusedGuest] = useState(null);
 
   const handleNextStep = () => {
     setCurrentStep(prev => (prev < locations.length - 1 ? prev + 1 : prev));
@@ -27,15 +28,34 @@ function App() {
     setCurrentStep(0);
   };
 
+  const handleGuestFocus = (index) => {
+    setFocusedGuest(index);
+  };
+
   return (
     <div className="App">
-      <h1>Deb's 60th Birthday Celebration</h1>
-      <div className="map-container">
-        <BirthdayMap locations={locations} guests={guests} currentStep={currentStep} />
+      <div className="left-panel">
+        <h1>Deb's 60th Birthday Celebration</h1>
+        <div className="controls">
+          <button onClick={handleNextStep}>Next Step</button>
+          <button onClick={handleReset}>Reset</button>
+        </div>
+        <div className="guest-buttons">
+          <h2>Locate Guests</h2>
+          {guests.map((guest, index) => (
+            <button key={index} onClick={() => handleGuestFocus(index)}>
+              {guest.icon} {guest.name}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="controls">
-        <button onClick={handleNextStep}>Next Step</button>
-        <button onClick={handleReset}>Reset</button>
+      <div className="map-container">
+        <BirthdayMap 
+          locations={locations} 
+          guests={guests} 
+          currentStep={currentStep} 
+          focusedGuest={focusedGuest}
+        />
       </div>
     </div>
   );
