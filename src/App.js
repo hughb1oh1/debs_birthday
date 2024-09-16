@@ -4,7 +4,6 @@ import PlayControls from './components/PlayControls';
 import GuestList from './components/GuestList';
 import VenueDetails from './components/VenueDetails';
 import { Dialog } from '@headlessui/react';
-
 import './App.css';
 
 const locations = [
@@ -24,26 +23,46 @@ function App() {
     let timer;
     if (playState === 'playing') {
       timer = setInterval(() => {
-        setCurrentStep(step => (step < locations.length - 1 ? step + 1 : 0));
+        setCurrentStep(step => {
+          const nextStep = step + 1;
+          if (nextStep >= locations.length) {
+            setPlayState('paused');
+            return step;
+          }
+          return nextStep;
+        });
       }, 3000); // Move to next location every 3 seconds
     }
     return () => clearInterval(timer);
   }, [playState]);
 
+  const handlePlayPause = () => {
+    setPlayState(state => state === 'playing' ? 'paused' : 'playing');
+  };
+
+  const handleReset = () => {
+    setCurrentStep(0);
+    setPlayState('paused');
+  };
+
   return (
     <div className="App">
-      <h1>Deb's 60th Birthday Celebration</h1>
-      <BirthdayMap 
-        locations={locations}
-        currentStep={currentStep} 
-        onVenueClick={setSelectedVenue}
-      />
-      <PlayControls 
-        playState={playState} 
-        onPlayPause={() => setPlayState(state => state === 'playing' ? 'paused' : 'playing')}
-        onReset={() => setCurrentStep(0)}
-      />
-      <GuestList onGuestClick={setSelectedGuest} />
+      <div className="left-panel">
+        <h1>Deb's 60th Birthday Celebration</h1>
+        <PlayControls 
+          playState={playState} 
+          onPlayPause={handlePlayPause}
+          onReset={handleReset}
+        />
+        <GuestList onGuestClick={setSelectedGuest} />
+      </div>
+      <div className="map-container">
+        <BirthdayMap 
+          locations={locations}
+          currentStep={currentStep} 
+          onVenueClick={setSelectedVenue}
+        />
+      </div>
       
       <Dialog open={!!selectedGuest} onClose={() => setSelectedGuest(null)}>
         <Dialog.Panel>

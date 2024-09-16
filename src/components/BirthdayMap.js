@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { GoogleMap, useLoadScript, Marker, Polyline } from '@react-google-maps/api';
 import config from '../config.json';
 
-const mapContainerStyle = { width: '100%', height: '400px' };
+const mapContainerStyle = { width: '100%', height: '100%' };
 const center = { lat: -33.8568, lng: 151.2153 }; // Sydney's coordinates
 
 const BirthdayMap = ({ locations, currentStep, onVenueClick }) => {

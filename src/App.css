@@ -1,36 +1,59 @@
 .App {
-  text-align: center;
-  font-family: Arial, sans-serif;
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+}
+
+.left-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 300px;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.9);
+  z-index: 10;
+  padding: 20px;
+  overflow-y: auto;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.map-container {
+  flex-grow: 1;
+  height: 100%;
 }
 
 h1 {
-  color: #333;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.play-controls {
+  margin-bottom: 20px;
 }
 
 .play-controls button {
-  margin: 10px;
+  margin-right: 10px;
   padding: 10px 20px;
   font-size: 16px;
   cursor: pointer;
 }
 
+.guest-list {
+  display: flex;
+  flex-direction: column;
+}
+
 .guest-list button {
-  margin: 5px;
-  padding: 5px 10px;
-  font-size: 20px;
+  margin: 5px 0;
+  padding: 10px;
+  font-size: 18px;
   cursor: pointer;
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 5px;
 }
 
-.venue-details {
-  text-align: left;
-  padding: 20px;
-}
-
-.venue-details ul {
-  list-style-type: none;
-  padding: 0;
-}
-
-.venue-details li {
-  margin: 10px 0;
+.guest-list button:hover {
+  background-color: #f0f0f0;
 }
