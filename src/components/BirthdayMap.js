@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, useLoadScript, Marker, Polyline } from '@react-google-maps/api';
 import config from '../config.json';
 
 const mapContainerStyle = { width: '100%', height: '100%' };
 const center = { lat: -33.8568, lng: 151.2153 }; // Sydney's coordinates
 
-const BirthdayMap = ({ locations, currentStep, onVenueClick }) => {
+const BirthdayMap = ({ locations, guests, currentStep, onVenueClick, zoomToGuest, setZoomToGuest }) => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: config.GOOGLE_MAPS_API_KEY
   });
 
-  const [animatedPositions, setAnimatedPositions] = useState([]);
+  const mapRef = useRef();
 
   const getMarkerIcon = useCallback((name) => ({
     url: `/venue-icons/${name.toLowerCase().replace(' ', '-')}.png`,
@@ -21,33 +21,21 @@ const BirthdayMap = ({ locations, currentStep, onVenueClick }) => {
     isLoaded && index === currentStep ? window.google.maps.Animation.BOUNCE : null
   ), [isLoaded, currentStep]);
 
-  const getPersonIcon = useCallback(() => ({
-    url: '/person-icon.png', // Make sure to add this icon to your public folder
-    scaledSize: isLoaded ? new window.google.maps.Size(30, 30) : null
-  }), [isLoaded]);
+  const onMapLoad = useCallback((map) => {
+    mapRef.current = map;
+  }, []);
 
   useEffect(() => {
-    if (isLoaded && currentStep > 0) {
-      const start = locations[currentStep - 1];
-      const end = locations[currentStep];
-      const numSteps = 100; // Number of steps for animation
-
-      let step = 0;
-      const interval = setInterval(() => {
-        const nextLat = start.lat + (end.lat - start.lat) * (step / numSteps);
-        const nextLng = start.lng + (end.lng - start.lng) * (step / numSteps);
-        
-        setAnimatedPositions(prev => [...prev, { lat: nextLat, lng: nextLng }]);
-
-        step++;
-        if (step > numSteps) {
-          clearInterval(interval);
-        }
-      }, 50); // Adjust this value to change animation speed
-
-      return () => clearInterval(interval);
+    if (mapRef.current && zoomToGuest) {
+      const guestIndex = guests.findIndex(g => g.name === zoomToGuest.name);
+      if (guestIndex !== -1) {
+        const position = locations[guestIndex % locations.length];
+        mapRef.current.panTo({ lat: position.lat, lng: position.lng });
+        mapRef.current.setZoom(18);
+        setZoomToGuest(null);
+      }
     }
-  }, [currentStep, locations, isLoaded]);
+  }, [zoomToGuest, guests, locations, setZoomToGuest]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
@@ -57,10 +45,11 @@ const BirthdayMap = ({ locations, currentStep, onVenueClick }) => {
       mapContainerStyle={mapContainerStyle}
       center={center}
       zoom={15}
+      onLoad={onMapLoad}
     >
       {locations.map((location, index) => (
         <Marker
-          key={index}
+          key={`venue-${index}`}
           position={{ lat: location.lat, lng: location.lng }}
           onClick={() => onVenueClick(location)}
           icon={getMarkerIcon(location.name)}
@@ -68,19 +57,30 @@ const BirthdayMap = ({ locations, currentStep, onVenueClick }) => {
         />
       ))}
       
+      {guests.map((guest, index) => (
+        <Marker
+          key={`guest-${index}`}
+          position={locations[index % locations.length]}
+          icon={{
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: "#4285F4",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "#FFFFFF",
+          }}
+          label={{
+            text: guest.icon,
+            fontSize: "16px",
+            fontWeight: "bold",
+          }}
+        />
+      ))}
+      
       <Polyline
         path={locations.slice(0, currentStep + 1).map(loc => ({ lat: loc.lat, lng: loc.lng }))}
         options={{ strokeColor: "#0000FF", strokeWeight: 4 }}
       />
-
-      {animatedPositions.map((position, index) => (
-        <Marker
-          key={`person-${index}`}
-          position={position}
-          icon={getPersonIcon()}
-          zIndex={1000} // Ensure the animated icons appear above the route
-        />
-      ))}
     </GoogleMap>
   );
 };

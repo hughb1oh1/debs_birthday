@@ -13,11 +13,19 @@ const locations = [
   { name: "La Renaissance Patisserie", lat: -33.8593, lng: 151.2080 }
 ];
 
+const guests = [
+  { name: "Guest 1", icon: "👩", details: "Details about Guest 1" },
+  { name: "Guest 2", icon: "👨", details: "Details about Guest 2" },
+  { name: "Guest 3", icon: "👩‍🦰", details: "Details about Guest 3" },
+  { name: "Guest 4", icon: "👨‍🦳", details: "Details about Guest 4" },
+];
+
 function App() {
   const [playState, setPlayState] = useState('paused');
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedGuest, setSelectedGuest] = useState(null);
   const [selectedVenue, setSelectedVenue] = useState(null);
+  const [zoomToGuest, setZoomToGuest] = useState(null);
 
   useEffect(() => {
     let timer;
@@ -35,7 +43,7 @@ function App() {
     }
     return () => clearInterval(timer);
   }, [playState]);
-  
+
   const handlePlayPause = () => {
     setPlayState(state => state === 'playing' ? 'paused' : 'playing');
   };
@@ -43,6 +51,11 @@ function App() {
   const handleReset = () => {
     setCurrentStep(0);
     setPlayState('paused');
+  };
+
+  const handleGuestClick = (guest) => {
+    setSelectedGuest(guest);
+    setZoomToGuest(guest);
   };
 
   return (
@@ -54,13 +67,16 @@ function App() {
           onPlayPause={handlePlayPause}
           onReset={handleReset}
         />
-        <GuestList onGuestClick={setSelectedGuest} />
+        <GuestList guests={guests} onGuestClick={handleGuestClick} />
       </div>
       <div className="map-container">
         <BirthdayMap 
           locations={locations}
+          guests={guests}
           currentStep={currentStep} 
           onVenueClick={setSelectedVenue}
+          zoomToGuest={zoomToGuest}
+          setZoomToGuest={setZoomToGuest}
         />
       </div>
       
