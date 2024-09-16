@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GoogleMap, useLoadScript, Marker, Polyline } from '@react-google-maps/api';
 import config from '../config.json';
 
@@ -11,6 +11,7 @@ const BirthdayMap = ({ locations, guests, currentStep, onVenueClick, zoomToGuest
   });
 
   const mapRef = useRef();
+  const [map, setMap] = useState(null);
 
   const getMarkerIcon = useCallback((name) => ({
     url: `/venue-icons/${name.toLowerCase().replace(' ', '-')}.png`,
@@ -23,6 +24,7 @@ const BirthdayMap = ({ locations, guests, currentStep, onVenueClick, zoomToGuest
 
   const onMapLoad = useCallback((map) => {
     mapRef.current = map;
+    setMap(map);
   }, []);
 
   useEffect(() => {
@@ -47,7 +49,7 @@ const BirthdayMap = ({ locations, guests, currentStep, onVenueClick, zoomToGuest
       zoom={15}
       onLoad={onMapLoad}
     >
-      {locations.map((location, index) => (
+      {map && locations.map((location, index) => (
         <Marker
           key={`venue-${index}`}
           position={{ lat: location.lat, lng: location.lng }}
@@ -57,7 +59,7 @@ const BirthdayMap = ({ locations, guests, currentStep, onVenueClick, zoomToGuest
         />
       ))}
       
-      {guests.map((guest, index) => (
+      {map && guests.map((guest, index) => (
         <Marker
           key={`guest-${index}`}
           position={locations[index % locations.length]}
@@ -77,10 +79,12 @@ const BirthdayMap = ({ locations, guests, currentStep, onVenueClick, zoomToGuest
         />
       ))}
       
-      <Polyline
-        path={locations.slice(0, currentStep + 1).map(loc => ({ lat: loc.lat, lng: loc.lng }))}
-        options={{ strokeColor: "#0000FF", strokeWeight: 4 }}
-      />
+      {map && (
+        <Polyline
+          path={locations.slice(0, currentStep + 1).map(loc => ({ lat: loc.lat, lng: loc.lng }))}
+          options={{ strokeColor: "#0000FF", strokeWeight: 4 }}
+        />
+      )}
     </GoogleMap>
   );
 };
