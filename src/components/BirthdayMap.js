@@ -5,7 +5,7 @@ import config from '../config.json';
 const mapContainerStyle = { width: '100%', height: '100%' };
 const center = { lat: -33.8568, lng: 151.2153 }; // Sydney's coordinates
 
-const BirthdayMap = ({ locations, guests = [], currentStep, focusedGuest }) => {
+const BirthdayMap = ({ locations, guests, currentStep, focusedGuest }) => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: config.GOOGLE_MAPS_API_KEY
   });
@@ -13,17 +13,16 @@ const BirthdayMap = ({ locations, guests = [], currentStep, focusedGuest }) => {
   const mapRef = useRef();
   const [mapInstance, setMapInstance] = useState(null);
   const [guestPositions, setGuestPositions] = useState([]);
-  const [polylinePath, setPolylinePath] = useState([]);
   const animationRef = useRef(null);
+  const polylineRef = useRef(null);
 
   const onMapLoad = useCallback((map) => {
-    console.log('Map loaded');
     mapRef.current = map;
     setMapInstance(map);
   }, []);
 
   const generateRandomOffset = () => {
-    return (Math.random() - 0.5) * 0.0002; // Adjust this value to change the spread
+    return (Math.random() - 0.5) * 0.0002;
   };
 
   const moveGuests = useCallback((from, to, progress) => {
@@ -42,12 +41,6 @@ const BirthdayMap = ({ locations, guests = [], currentStep, focusedGuest }) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      // Animate polyline
-      const lat = start.lat + (end.lat - start.lat) * progress;
-      const lng = start.lng + (end.lng - start.lng) * progress;
-      setPolylinePath(prev => [...prev, { lat, lng }]);
-
-      // Move guests
       moveGuests(start, end, progress);
 
       if (progress < 1) {
@@ -57,40 +50,45 @@ const BirthdayMap = ({ locations, guests = [], currentStep, focusedGuest }) => {
     animate();
   }, [moveGuests]);
 
-  const startNextStep = useCallback(() => {
-    if (currentStep < locations.length - 1) {
-      const start = locations[currentStep];
-      const end = locations[currentStep + 1];
-      animateRoute(start, end, 5000); // 5 seconds duration
-    }
-  }, [currentStep, locations, animateRoute]);
-
   useEffect(() => {
     if (mapInstance && locations) {
+      // Draw polyline
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+      }
+      polylineRef.current = new window.google.maps.Polyline({
+        path: locations,
+        geodesic: true,
+        strokeColor: '#0000FF',
+        strokeOpacity: 1.0,
+        strokeWeight: 3,
+      });
+      polylineRef.current.setMap(mapInstance);
+
       // Clear existing animation
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
 
-      // Reset polyline and guest positions
-      setPolylinePath([locations[0]]);
-      setGuestPositions(guests.map(() => ({
-        lat: locations[0].lat + generateRandomOffset(),
-        lng: locations[0].lng + generateRandomOffset()
-      })));
-
-      // Start animation for the current step
-      startNextStep();
+      // Initialize guest positions at the first location or animate to next location
+      if (currentStep === 0) {
+        const initialPositions = guests.map(() => ({
+          lat: locations[0].lat + generateRandomOffset(),
+          lng: locations[0].lng + generateRandomOffset()
+        }));
+        setGuestPositions(initialPositions);
+      } else {
+        const start = locations[currentStep - 1];
+        const end = locations[currentStep];
+        animateRoute(start, end, 5000); // 5 seconds duration
+      }
     }
-  }, [mapInstance, locations, guests, currentStep, startNextStep]);
+  }, [mapInstance, locations, guests, currentStep, animateRoute]);
 
   useEffect(() => {
-    if (mapInstance && focusedGuest !== null) {
-      const guestPosition = guestPositions[focusedGuest];
-      if (guestPosition) {
-        mapInstance.panTo(guestPosition);
-        mapInstance.setZoom(18);
-      }
+    if (mapInstance && focusedGuest !== null && guestPositions[focusedGuest]) {
+      mapInstance.panTo(guestPositions[focusedGuest]);
+      mapInstance.setZoom(18);
     }
   }, [mapInstance, focusedGuest, guestPositions]);
 
@@ -100,10 +98,7 @@ const BirthdayMap = ({ locations, guests = [], currentStep, focusedGuest }) => {
     setGuestPositions(newPositions);
   };
 
-  if (loadError) {
-    console.error('Error loading maps:', loadError);
-    return <div>Error loading maps</div>;
-  }
+  if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
 
   return (
@@ -117,7 +112,19 @@ const BirthdayMap = ({ locations, guests = [], currentStep, focusedGuest }) => {
         <Marker
           key={`venue-${index}`}
           position={{ lat: location.lat, lng: location.lng }}
-          label={(index + 1).toString()}
+          icon={{
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 20,
+            fillColor: "#FF4136",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "#FFFFFF",
+          }}
+          label={{
+            text: "🏢",
+            fontSize: "24px",
+            fontWeight: "bold",
+          }}
         />
       ))}
       
@@ -142,17 +149,6 @@ const BirthdayMap = ({ locations, guests = [], currentStep, focusedGuest }) => {
           }}
         />
       ))}
-
-      {mapInstance && (
-        <polyline
-          path={polylinePath}
-          options={{
-            strokeColor: '#0000FF',
-            strokeOpacity: 1.0,
-            strokeWeight: 4,
-          }}
-        />
-      )}
     </GoogleMap>
   );
 };

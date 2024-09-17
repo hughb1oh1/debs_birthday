@@ -31,6 +31,7 @@ function App() {
 
   const handleReset = useCallback(() => {
     setCurrentStep(0);
+    setFocusedGuest(null);
     setIsAnimating(false);
   }, []);
 
@@ -43,8 +44,8 @@ function App() {
       <div className="left-panel">
         <h1>Deb's 60th Birthday Celebration</h1>
         <div className="controls">
-          <button onClick={handleNextStep} disabled={isAnimating}>
-            {isAnimating ? 'Animating...' : 'Next Step'}
+          <button onClick={handleNextStep} disabled={isAnimating || currentStep === locations.length - 1}>
+            {isAnimating ? 'Moving...' : 'Next Step'}
           </button>
           <button onClick={handleReset}>Reset</button>
         </div>
