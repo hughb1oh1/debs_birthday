@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import BirthdayMap from './components/BirthdayMap';
 import './App.css';
 
@@ -19,25 +19,33 @@ const guests = [
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
   const [focusedGuest, setFocusedGuest] = useState(null);
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  const handleNextStep = () => {
-    setCurrentStep(prev => (prev < locations.length - 1 ? prev + 1 : prev));
-  };
+  const handleNextStep = useCallback(() => {
+    if (!isAnimating && currentStep < locations.length - 1) {
+      setIsAnimating(true);
+      setCurrentStep(prev => prev + 1);
+      setTimeout(() => setIsAnimating(false), 5000); // Match this with the animation duration in BirthdayMap
+    }
+  }, [currentStep, isAnimating]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setCurrentStep(0);
-  };
+    setIsAnimating(false);
+  }, []);
 
-  const handleGuestFocus = (index) => {
+  const handleGuestFocus = useCallback((index) => {
     setFocusedGuest(index);
-  };
+  }, []);
 
   return (
     <div className="App">
       <div className="left-panel">
         <h1>Deb's 60th Birthday Celebration</h1>
         <div className="controls">
-          <button onClick={handleNextStep}>Next Step</button>
+          <button onClick={handleNextStep} disabled={isAnimating}>
+            {isAnimating ? 'Animating...' : 'Next Step'}
+          </button>
           <button onClick={handleReset}>Reset</button>
         </div>
         <div className="guest-buttons">

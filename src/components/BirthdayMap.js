@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { GoogleMap, useLoadScript } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
 import config from '../config.json';
 
 const mapContainerStyle = { width: '100%', height: '100%' };
@@ -12,6 +12,9 @@ const BirthdayMap = ({ locations, guests = [], currentStep, focusedGuest }) => {
 
   const mapRef = useRef();
   const [mapInstance, setMapInstance] = useState(null);
+  const [guestPositions, setGuestPositions] = useState([]);
+  const [polylinePath, setPolylinePath] = useState([]);
+  const animationRef = useRef(null);
 
   const onMapLoad = useCallback((map) => {
     console.log('Map loaded');
@@ -19,74 +22,83 @@ const BirthdayMap = ({ locations, guests = [], currentStep, focusedGuest }) => {
     setMapInstance(map);
   }, []);
 
+  const generateRandomOffset = () => {
+    return (Math.random() - 0.5) * 0.0002; // Adjust this value to change the spread
+  };
+
+  const moveGuests = useCallback((from, to, progress) => {
+    const newPositions = guests.map(() => {
+      const lat = from.lat + (to.lat - from.lat) * progress + generateRandomOffset();
+      const lng = from.lng + (to.lng - from.lng) * progress + generateRandomOffset();
+      return { lat, lng };
+    });
+    setGuestPositions(newPositions);
+  }, [guests]);
+
+  const animateRoute = useCallback((start, end, duration) => {
+    const startTime = new Date().getTime();
+    const animate = () => {
+      const now = new Date().getTime();
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Animate polyline
+      const lat = start.lat + (end.lat - start.lat) * progress;
+      const lng = start.lng + (end.lng - start.lng) * progress;
+      setPolylinePath(prev => [...prev, { lat, lng }]);
+
+      // Move guests
+      moveGuests(start, end, progress);
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
+    };
+    animate();
+  }, [moveGuests]);
+
+  const startNextStep = useCallback(() => {
+    if (currentStep < locations.length - 1) {
+      const start = locations[currentStep];
+      const end = locations[currentStep + 1];
+      animateRoute(start, end, 5000); // 5 seconds duration
+    }
+  }, [currentStep, locations, animateRoute]);
+
   useEffect(() => {
     if (mapInstance && locations) {
-      // Clear existing markers and polylines
-      mapInstance.data.forEach((feature) => {
-        mapInstance.data.remove(feature);
-      });
+      // Clear existing animation
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
 
-      // Add venue markers
-      locations.forEach((location, index) => {
-        const marker = new window.google.maps.Marker({
-          position: { lat: location.lat, lng: location.lng },
-          map: mapInstance,
-          title: location.name,
-          label: (index + 1).toString(),
-          zIndex: 1 // Ensure venue markers are below guest markers
-        });
-        marker.addListener('click', () => {
-          console.log(`Venue clicked: ${location.name}`);
-        });
-      });
+      // Reset polyline and guest positions
+      setPolylinePath([locations[0]]);
+      setGuestPositions(guests.map(() => ({
+        lat: locations[0].lat + generateRandomOffset(),
+        lng: locations[0].lng + generateRandomOffset()
+      })));
 
-      // Add guest markers
-      guests.forEach((guest, index) => {
-        const position = locations[index % locations.length];
-        const marker = new window.google.maps.Marker({
-          position: { lat: position.lat, lng: position.lng },
-          map: mapInstance,
-          title: guest.name,
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 20,
-            fillColor: "#4285F4",
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "#FFFFFF",
-          },
-          label: {
-            text: guest.icon,
-            fontSize: "24px",
-            fontWeight: "bold",
-          },
-          zIndex: 2 // Ensure guest markers are above venue markers
-        });
-        marker.addListener('click', () => {
-          console.log(`Guest clicked: ${guest.name}`);
-        });
-      });
+      // Start animation for the current step
+      startNextStep();
+    }
+  }, [mapInstance, locations, guests, currentStep, startNextStep]);
 
-      // Add polyline
-      const path = locations.slice(0, currentStep + 1).map(loc => ({ lat: loc.lat, lng: loc.lng }));
-      const polyline = new window.google.maps.Polyline({
-        path: path,
-        geodesic: true,
-        strokeColor: '#0000FF',
-        strokeOpacity: 1.0,
-        strokeWeight: 4,
-        zIndex: 0 // Ensure polyline is below all markers
-      });
-      polyline.setMap(mapInstance);
-
-      // Focus on guest if focusedGuest is set
-      if (focusedGuest !== null) {
-        const guestPosition = locations[focusedGuest % locations.length];
-        mapInstance.panTo({ lat: guestPosition.lat, lng: guestPosition.lng });
+  useEffect(() => {
+    if (mapInstance && focusedGuest !== null) {
+      const guestPosition = guestPositions[focusedGuest];
+      if (guestPosition) {
+        mapInstance.panTo(guestPosition);
         mapInstance.setZoom(18);
       }
     }
-  }, [mapInstance, locations, guests, currentStep, focusedGuest]);
+  }, [mapInstance, focusedGuest, guestPositions]);
+
+  const handleDragEnd = (index, event) => {
+    const newPositions = [...guestPositions];
+    newPositions[index] = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+    setGuestPositions(newPositions);
+  };
 
   if (loadError) {
     console.error('Error loading maps:', loadError);
@@ -100,8 +112,48 @@ const BirthdayMap = ({ locations, guests = [], currentStep, focusedGuest }) => {
       center={center}
       zoom={15}
       onLoad={onMapLoad}
-      onClick={() => console.log('Map clicked')}
-    />
+    >
+      {locations.map((location, index) => (
+        <Marker
+          key={`venue-${index}`}
+          position={{ lat: location.lat, lng: location.lng }}
+          label={(index + 1).toString()}
+        />
+      ))}
+      
+      {guestPositions.map((position, index) => (
+        <Marker
+          key={`guest-${index}`}
+          position={position}
+          draggable={true}
+          onDragEnd={(e) => handleDragEnd(index, e)}
+          icon={{
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 20,
+            fillColor: "#4285F4",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "#FFFFFF",
+          }}
+          label={{
+            text: guests[index].icon,
+            fontSize: "24px",
+            fontWeight: "bold",
+          }}
+        />
+      ))}
+
+      {mapInstance && (
+        <polyline
+          path={polylinePath}
+          options={{
+            strokeColor: '#0000FF',
+            strokeOpacity: 1.0,
+            strokeWeight: 4,
+          }}
+        />
+      )}
+    </GoogleMap>
   );
 };
 
