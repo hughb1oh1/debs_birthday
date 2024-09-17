@@ -3,7 +3,7 @@ import { GoogleMap, useLoadScript } from '@react-google-maps/api';
 import config from '../config.json';
 
 const mapContainerStyle = { width: '100%', height: '100%' };
-const center = { lat: -33.8568, lng: 151.2153 }; // Sydney's coordinates
+const center = { lat: -33.8665, lng: 151.2074 }; // Wynyard station coordinates
 
 const guests = [
   { name: "Guest 1", icon: "👩" },
@@ -16,7 +16,7 @@ const guests = [
   { name: "Guest 8", icon: "👴" }
 ];
 
-const BirthdayMap = ({ locations, currentStep, onMapLoad }) => {
+const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick }) => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: config.GOOGLE_MAPS_API_KEY,
   });
@@ -37,26 +37,29 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad }) => {
 
     // Add location markers
     locations.forEach((location, index) => {
-      new window.google.maps.Marker({
+      const marker = new window.google.maps.Marker({
         position: { lat: location.lat, lng: location.lng },
         map: map,
         title: location.name,
         label: {
-          text: (index + 1).toString(),
-          color: 'white',
-          fontSize: '16px',
+          text: location.name,
+          color: 'black',
+          fontSize: '14px',
           fontWeight: 'bold',
         },
       });
+
+      marker.addListener('click', () => onMarkerClick(location));
     });
 
-    // Initialize guest markers
+    // Initialize guest markers at the start location (Wynyard)
+    const startLocation = locations[0];
     const initialGuestMarkers = guests.map((guest, index) => {
       const offset = getRandomOffset();
       return new window.google.maps.Marker({
         position: { 
-          lat: locations[0].lat + offset.lat, 
-          lng: locations[0].lng + offset.lng 
+          lat: startLocation.lat + offset.lat, 
+          lng: startLocation.lng + offset.lng 
         },
         map: map,
         title: guest.name,
@@ -80,8 +83,12 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad }) => {
     // Create polylines for all route segments
     createAllRoutePolylines(map);
 
+    // Center on the first venue (index 1, as 0 is Wynyard)
+    map.setCenter({ lat: locations[1].lat, lng: locations[1].lng });
+    map.setZoom(15);
+
     if (onMapLoad) onMapLoad(map);
-  }, [locations, onMapLoad]);
+  }, [locations, onMapLoad, onMarkerClick]);
 
   const createAllRoutePolylines = async (map) => {
     const newPolylines = [];
