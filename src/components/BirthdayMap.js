@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, Marker, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 import config from '../config.json';
 
 const mapContainerStyle = { width: '100%', height: '100%' };
@@ -7,14 +7,15 @@ const center = { lat: -33.8568, lng: 151.2153 }; // Sydney's coordinates
 
 const BirthdayMap = ({ locations, guests, currentStep, focusedGuest }) => {
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: config.GOOGLE_MAPS_API_KEY
+    googleMapsApiKey: config.GOOGLE_MAPS_API_KEY,
+    libraries: ['directions'],
   });
 
   const mapRef = useRef();
   const [mapInstance, setMapInstance] = useState(null);
   const [guestPositions, setGuestPositions] = useState([]);
+  const [directions, setDirections] = useState(null);
   const animationRef = useRef(null);
-  const polylineRef = useRef(null);
 
   const onMapLoad = useCallback((map) => {
     mapRef.current = map;
@@ -25,23 +26,26 @@ const BirthdayMap = ({ locations, guests, currentStep, focusedGuest }) => {
     return (Math.random() - 0.5) * 0.0002;
   };
 
-  const moveGuests = useCallback((from, to, progress) => {
+  const moveGuests = useCallback((path, progress) => {
     const newPositions = guests.map(() => {
-      const lat = from.lat + (to.lat - from.lat) * progress + generateRandomOffset();
-      const lng = from.lng + (to.lng - from.lng) * progress + generateRandomOffset();
+      const index = Math.floor(progress * (path.length - 1));
+      const nextIndex = Math.min(index + 1, path.length - 1);
+      const segmentProgress = (progress * (path.length - 1)) - index;
+      const lat = path[index].lat() + (path[nextIndex].lat() - path[index].lat()) * segmentProgress + generateRandomOffset();
+      const lng = path[index].lng() + (path[nextIndex].lng() - path[index].lng()) * segmentProgress + generateRandomOffset();
       return { lat, lng };
     });
     setGuestPositions(newPositions);
   }, [guests]);
 
-  const animateRoute = useCallback((start, end, duration) => {
+  const animateRoute = useCallback((path, duration) => {
     const startTime = new Date().getTime();
     const animate = () => {
       const now = new Date().getTime();
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      moveGuests(start, end, progress);
+      moveGuests(path, progress);
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
@@ -51,39 +55,29 @@ const BirthdayMap = ({ locations, guests, currentStep, focusedGuest }) => {
   }, [moveGuests]);
 
   useEffect(() => {
-    if (mapInstance && locations) {
-      // Draw polyline
-      if (polylineRef.current) {
-        polylineRef.current.setMap(null);
-      }
-      polylineRef.current = new window.google.maps.Polyline({
-        path: locations,
-        geodesic: true,
-        strokeColor: '#0000FF',
-        strokeOpacity: 1.0,
-        strokeWeight: 3,
-      });
-      polylineRef.current.setMap(mapInstance);
+    if (mapInstance && locations && locations.length > 1) {
+      const directionsService = new window.google.maps.DirectionsService();
+      const origin = locations[currentStep];
+      const destination = locations[currentStep + 1];
 
-      // Clear existing animation
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-
-      // Initialize guest positions at the first location or animate to next location
-      if (currentStep === 0) {
-        const initialPositions = guests.map(() => ({
-          lat: locations[0].lat + generateRandomOffset(),
-          lng: locations[0].lng + generateRandomOffset()
-        }));
-        setGuestPositions(initialPositions);
-      } else {
-        const start = locations[currentStep - 1];
-        const end = locations[currentStep];
-        animateRoute(start, end, 5000); // 5 seconds duration
+      if (destination) {
+        directionsService.route(
+          {
+            origin: origin,
+            destination: destination,
+            travelMode: window.google.maps.TravelMode.WALKING,
+          },
+          (result, status) => {
+            if (status === window.google.maps.DirectionsStatus.OK) {
+              setDirections(result);
+              const path = result.routes[0].overview_path;
+              animateRoute(path, 5000); // 5 seconds duration
+            }
+          }
+        );
       }
     }
-  }, [mapInstance, locations, guests, currentStep, animateRoute]);
+  }, [mapInstance, locations, currentStep, animateRoute]);
 
   useEffect(() => {
     if (mapInstance && focusedGuest !== null && guestPositions[focusedGuest]) {
@@ -111,7 +105,7 @@ const BirthdayMap = ({ locations, guests, currentStep, focusedGuest }) => {
       {locations.map((location, index) => (
         <Marker
           key={`venue-${index}`}
-          position={{ lat: location.lat, lng: location.lng }}
+          position={location}
           icon={{
             path: window.google.maps.SymbolPath.CIRCLE,
             scale: 20,
@@ -149,6 +143,16 @@ const BirthdayMap = ({ locations, guests, currentStep, focusedGuest }) => {
           }}
         />
       ))}
+
+      {directions && (
+        <DirectionsRenderer
+          directions={directions}
+          options={{
+            suppressMarkers: true,
+            preserveViewport: true,
+          }}
+        />
+      )}
     </GoogleMap>
   );
 };
