@@ -5,6 +5,7 @@
   "homepage": "https://hughb1oh1.github.io/debs_birthday",
   "dependencies": {
     "@headlessui/react": "^2.1.8",
+    "@heroicons/react": "^2.1.5",
     "@react-google-maps/api": "^2.18.1",
     "@react-spring/web": "^9.7.4",
     "react": "^18.2.0",

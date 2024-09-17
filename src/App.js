@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import BirthdayMap from './components/BirthdayMap';
+import { PlayIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import './App.css';
 
 const locations = [
@@ -9,19 +10,12 @@ const locations = [
   { name: "La Renaissance Patisserie", lat: -33.8593, lng: 151.2080 }
 ];
 
-const guests = [
-  { name: "Guest 1", icon: "👩" },
-  { name: "Guest 2", icon: "👨" },
-  { name: "Guest 3", icon: "👩‍🦰" },
-  { name: "Guest 4", icon: "👨‍🦳" }
-];
-
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
-  const [focusedGuest, setFocusedGuest] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [map, setMap] = useState(null);
 
-  const handleNextStep = useCallback(() => {
+  const handlePlay = useCallback(() => {
     if (!isAnimating && currentStep < locations.length - 1) {
       setIsAnimating(true);
       setCurrentStep(prev => prev + 1);
@@ -31,40 +25,36 @@ function App() {
 
   const handleReset = useCallback(() => {
     setCurrentStep(0);
-    setFocusedGuest(null);
     setIsAnimating(false);
-  }, []);
+    if (map) {
+      const bounds = new window.google.maps.LatLngBounds();
+      locations.forEach((location) => {
+        bounds.extend(new window.google.maps.LatLng(location.lat, location.lng));
+      });
+      map.fitBounds(bounds);
+    }
+  }, [map]);
 
-  const handleGuestFocus = useCallback((index) => {
-    setFocusedGuest(index);
+  const onMapLoad = useCallback((mapInstance) => {
+    setMap(mapInstance);
   }, []);
 
   return (
     <div className="App">
-      <div className="left-panel">
-        <h1>Deb's 60th Birthday Celebration</h1>
-        <div className="controls">
-          <button onClick={handleNextStep} disabled={isAnimating || currentStep === locations.length - 1}>
-            {isAnimating ? 'Moving...' : 'Next Step'}
-          </button>
-          <button onClick={handleReset}>Reset</button>
-        </div>
-        <div className="guest-buttons">
-          <h2>Locate Guests</h2>
-          {guests.map((guest, index) => (
-            <button key={index} onClick={() => handleGuestFocus(index)}>
-              {guest.icon} {guest.name}
-            </button>
-          ))}
-        </div>
-      </div>
       <div className="map-container">
         <BirthdayMap 
           locations={locations} 
-          guests={guests} 
-          currentStep={currentStep} 
-          focusedGuest={focusedGuest}
+          currentStep={currentStep}
+          onMapLoad={onMapLoad}
         />
+      </div>
+      <div className="controls-overlay">
+        <button onClick={handlePlay} disabled={isAnimating || currentStep === locations.length - 1}>
+          <PlayIcon className="h-6 w-6" />
+        </button>
+        <button onClick={handleReset}>
+          <ArrowPathIcon className="h-6 w-6" />
+        </button>
       </div>
     </div>
   );
