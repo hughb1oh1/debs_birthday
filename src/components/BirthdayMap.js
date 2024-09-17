@@ -200,14 +200,14 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerCli
 
   useEffect(() => {
     const handleAnimation = async () => {
-      if (mapRef.current && locations && locations.length > 1 && currentStep < locations.length - 1 && isAnimating) {
+      if (mapRef.current && locations && locations.length > 1 && currentStep < locations.length && isAnimating) {
         try {
-          const origin = locations[currentStep];
-          const destination = locations[currentStep + 1];
+          const origin = currentStep === 0 ? locations[0] : locations[currentStep - 1];
+          const destination = locations[currentStep];
           const result = await getDirections(origin, destination);
           
           routePolylinesRef.current.forEach((polyline, index) => {
-            polyline.setOptions({ strokeOpacity: index === currentStep ? 1.0 : 0.5 });
+            polyline.setOptions({ strokeOpacity: index === currentStep - 1 ? 1.0 : 0.5 });
           });
           
           const currentZoom = mapRef.current.getZoom();
