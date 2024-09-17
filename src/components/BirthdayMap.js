@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { GoogleMap, useLoadScript } from '@react-google-maps/api';
 import config from '../config.json';
 
@@ -15,7 +15,7 @@ const guests = [
   { name: "Guest 8", icon: "👴" }
 ];
 
-const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnimating }) => {
+const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerClick, isAnimating, onAnimationComplete }, ref) => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: config.GOOGLE_MAPS_API_KEY,
   });
@@ -25,6 +25,26 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
   const routePolylinesRef = useRef([]);
   const animationRef = useRef(null);
   const lastAnimatedStepRef = useRef(-1);
+
+  useImperativeHandle(ref, () => ({
+    resetMap: () => {
+      if (mapRef.current) {
+        mapRef.current.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
+        mapRef.current.setZoom(15);
+        guestMarkersRef.current.forEach(marker => {
+          const offset = getRandomOffset();
+          marker.setPosition({ 
+            lat: locations[0].lat + offset.lat, 
+            lng: locations[0].lng + offset.lng 
+          });
+        });
+        routePolylinesRef.current.forEach((polyline) => {
+          polyline.setOptions({ strokeOpacity: 0.5 });
+        });
+        lastAnimatedStepRef.current = -1;
+      }
+    }
+  }));
 
   const mapLoad = useCallback((map) => {
     mapRef.current = map;
@@ -49,18 +69,16 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
         const currentCenter = map.getCenter();
         const currentZoom = map.getZoom();
         onMarkerClick(location);
-        setTimeout(() => {
-          map.setCenter(currentCenter);
-          map.setZoom(currentZoom);
-        }, 10);
+        map.setCenter(currentCenter);
+        map.setZoom(currentZoom);
       });
     });
 
     createAllRoutePolylines(map);
     initializeGuestMarkers(map);
 
-    if (onMapLoad) onMapLoad(map);
-  }, [locations, onMapLoad, onMarkerClick]);
+    if (onMapLoad) onMapLoad({ resetMap: ref.current.resetMap });
+  }, [locations, onMapLoad, onMarkerClick, ref]);
 
   const initializeGuestMarkers = useCallback((map) => {
     guestMarkersRef.current = guests.map((guest) => {
@@ -174,14 +192,15 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
         animationRef.current = requestAnimationFrame(animate);
       } else {
         lastAnimatedStepRef.current = currentStep;
+        onAnimationComplete();
       }
     };
     animationRef.current = requestAnimationFrame(animate);
-  }, [getRandomOffset, currentStep]);
+  }, [currentStep, onAnimationComplete, getRandomOffset]);
 
   useEffect(() => {
     const handleAnimation = async () => {
-      if (mapRef.current && locations && locations.length > 1 && currentStep < locations.length - 1) {
+      if (mapRef.current && locations && locations.length > 1 && currentStep < locations.length - 1 && isAnimating) {
         try {
           const origin = locations[currentStep];
           const destination = locations[currentStep + 1];
@@ -192,20 +211,15 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
           });
           
           const currentZoom = mapRef.current.getZoom();
-          const currentCenter = mapRef.current.getCenter();
 
           if (lastAnimatedStepRef.current !== currentStep) {
             const bounds = new window.google.maps.LatLngBounds();
             result.routes[0].overview_path.forEach((point) => bounds.extend(point));
             mapRef.current.fitBounds(bounds);
             mapRef.current.setZoom(currentZoom);
-          } else {
-            mapRef.current.setCenter(currentCenter);
           }
 
-          if (isAnimating) {
-            animateRoute(result.routes[0].overview_path, 5000);
-          }
+          animateRoute(result.routes[0].overview_path, 5000);
         } catch (error) {
           console.error("Error during animation:", error);
         }
@@ -214,21 +228,6 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
 
     handleAnimation();
   }, [currentStep, isAnimating, locations, getDirections, animateRoute]);
-
-  useEffect(() => {
-    if (mapRef.current && currentStep === 0) {
-      guestMarkersRef.current.forEach(marker => marker.setMap(null));
-      initializeGuestMarkers(mapRef.current);
-
-      routePolylinesRef.current.forEach((polyline) => {
-        polyline.setOptions({ strokeOpacity: 0.5 });
-      });
-
-      mapRef.current.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
-      mapRef.current.setZoom(15);
-      lastAnimatedStepRef.current = -1;
-    }
-  }, [currentStep, locations, initializeGuestMarkers]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
@@ -241,6 +240,6 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
       onLoad={mapLoad}
     />
   );
-};
+});
 
 export default BirthdayMap;

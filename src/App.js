@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import BirthdayMap from './components/BirthdayMap';
 import { PlayIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import './App.css';
@@ -14,31 +14,31 @@ const locations = [
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [map, setMap] = useState(null);
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [venueDetails, setVenueDetails] = useState(null);
+  const mapRef = useRef(null);
 
   const handlePlay = useCallback(() => {
     if (!isAnimating && currentStep < locations.length - 1) {
       setIsAnimating(true);
       setCurrentStep(prev => prev + 1);
-      setTimeout(() => setIsAnimating(false), 5000); // Match this with the animation duration in BirthdayMap
     }
   }, [currentStep, isAnimating]);
 
   const handleReset = useCallback(() => {
     setCurrentStep(0);
     setIsAnimating(false);
+    if (mapRef.current) {
+      mapRef.current.resetMap();
+    }
   }, []);
 
   const onMapLoad = useCallback((mapInstance) => {
-    setMap(mapInstance);
+    mapRef.current = mapInstance;
   }, []);
 
   const handleMarkerClick = useCallback((location) => {
     setSelectedVenue(location);
-    // In a real application, you would fetch this data from a JSON file or API
-    // For this example, we'll use a mock async operation
     setTimeout(() => {
       setVenueDetails({
         name: location.name,
@@ -49,15 +49,21 @@ function App() {
     }, 300);
   }, []);
 
+  const handleAnimationComplete = useCallback(() => {
+    setIsAnimating(false);
+  }, []);
+
   return (
     <div className="App">
       <div className="map-container">
         <BirthdayMap 
+          ref={mapRef}
           locations={locations} 
           currentStep={currentStep}
           onMapLoad={onMapLoad}
           onMarkerClick={handleMarkerClick}
           isAnimating={isAnimating}
+          onAnimationComplete={handleAnimationComplete}
         />
       </div>
       <div className="controls-overlay">
