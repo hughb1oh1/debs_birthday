@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, useLoadScript } from '@react-google-maps/api';
 import config from '../config.json';
 
@@ -24,11 +24,11 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
   const guestMarkersRef = useRef([]);
   const routePolylinesRef = useRef([]);
   const animationRef = useRef(null);
-  const currentZoom = useRef(15);
 
   const mapLoad = useCallback((map) => {
     mapRef.current = map;
     
+    // Center on the first location and zoom
     map.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
     map.setZoom(15);
     
@@ -47,7 +47,13 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
 
       marker.addListener('click', () => {
         onMarkerClick(location);
-        map.panTo(marker.getPosition());
+        // Prevent map from recentering
+        const currentCenter = map.getCenter();
+        const currentZoom = map.getZoom();
+        setTimeout(() => {
+          map.setCenter(currentCenter);
+          map.setZoom(currentZoom);
+        }, 10);
       });
     });
 
@@ -184,11 +190,12 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
             polyline.setOptions({ strokeOpacity: index === currentStep ? 1.0 : 0.5 });
           });
           
-          currentZoom.current = mapRef.current.getZoom();
+          const currentZoom = mapRef.current.getZoom();
 
           const bounds = new window.google.maps.LatLngBounds();
           result.routes[0].overview_path.forEach((point) => bounds.extend(point));
-          mapRef.current.panToBounds(bounds);
+          mapRef.current.fitBounds(bounds);
+          mapRef.current.setZoom(currentZoom);
 
           if (isAnimating) {
             animateRoute(result.routes[0].overview_path, 5000);
