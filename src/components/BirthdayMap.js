@@ -1,77 +1,71 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { GoogleMap, useLoadScript, Marker, DirectionsRenderer } from '@react-google-maps/api';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { GoogleMap, useLoadScript } from '@react-google-maps/api';
 import config from '../config.json';
 
 const mapContainerStyle = { width: '100%', height: '100%' };
 const center = { lat: -33.8568, lng: 151.2153 }; // Sydney's coordinates
 
 const BirthdayMap = ({ locations, guests, currentStep, focusedGuest }) => {
-  console.log('BirthdayMap rendered with locations:', locations);
-
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: config.GOOGLE_MAPS_API_KEY,
   });
 
-  const mapRef = useRef();
-  const [mapInstance, setMapInstance] = useState(null);
-  const [guestPositions, setGuestPositions] = useState([]);
+  const [map, setMap] = useState(null);
+  const [guestMarkers, setGuestMarkers] = useState([]);
   const [directions, setDirections] = useState(null);
+  const [routePolyline, setRoutePolyline] = useState(null);
   const animationRef = useRef(null);
 
   const onMapLoad = useCallback((map) => {
-    console.log('Map loaded');
-    mapRef.current = map;
-    setMapInstance(map);
+    setMap(map);
 
-    // Log map center and zoom level
-    console.log('Map center:', map.getCenter().toJSON());
-    console.log('Map zoom level:', map.getZoom());
-
-    // Fit bounds to show all location markers
     const bounds = new window.google.maps.LatLngBounds();
     locations.forEach((location) => {
       bounds.extend(new window.google.maps.LatLng(location.lat, location.lng));
     });
     map.fitBounds(bounds);
-  }, [locations]);
 
-  const generateRandomOffset = () => {
-    return (Math.random() - 0.5) * 0.0002;
-  };
-
-  const moveGuests = useCallback((path, progress) => {
-    const newPositions = guests.map(() => {
-      const index = Math.floor(progress * (path.length - 1));
-      const nextIndex = Math.min(index + 1, path.length - 1);
-      const segmentProgress = (progress * (path.length - 1)) - index;
-      const lat = path[index].lat() + (path[nextIndex].lat() - path[index].lat()) * segmentProgress + generateRandomOffset();
-      const lng = path[index].lng() + (path[nextIndex].lng() - path[index].lng()) * segmentProgress + generateRandomOffset();
-      return { lat, lng };
+    // Add location markers
+    locations.forEach((location, index) => {
+      new window.google.maps.Marker({
+        position: { lat: location.lat, lng: location.lng },
+        map: map,
+        title: location.name,
+        label: {
+          text: (index + 1).toString(),
+          color: 'white',
+          fontSize: '16px',
+          fontWeight: 'bold',
+        },
+      });
     });
-    setGuestPositions(newPositions);
-  }, [guests]);
 
-  const animateRoute = useCallback((path, duration) => {
-    const startTime = new Date().getTime();
-    const animate = () => {
-      const now = new Date().getTime();
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      moveGuests(path, progress);
-
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate);
-      }
-    };
-    animate();
-  }, [moveGuests]);
+    // Initialize guest markers
+    const initialGuestMarkers = guests.map((guest, index) => {
+      return new window.google.maps.Marker({
+        position: { lat: locations[0].lat, lng: locations[0].lng },
+        map: map,
+        title: guest.name,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 15,
+          fillColor: "#4285F4",
+          fillOpacity: 1,
+          strokeWeight: 2,
+          strokeColor: "#FFFFFF",
+        },
+        label: {
+          text: guest.icon,
+          fontSize: "24px",
+          fontWeight: "bold",
+        },
+      });
+    });
+    setGuestMarkers(initialGuestMarkers);
+  }, [locations, guests]);
 
   useEffect(() => {
-    console.log('Map instance:', mapInstance);
-    console.log('Current step:', currentStep);
-    if (mapInstance && locations && locations.length > 1) {
-      console.log('Calculating directions for step:', currentStep);
+    if (map && locations && locations.length > 1) {
       const directionsService = new window.google.maps.DirectionsService();
       const origin = locations[currentStep];
       const destination = locations[currentStep + 1];
@@ -85,10 +79,23 @@ const BirthdayMap = ({ locations, guests, currentStep, focusedGuest }) => {
           },
           (result, status) => {
             if (status === window.google.maps.DirectionsStatus.OK) {
-              console.log('Directions received:', result);
               setDirections(result);
-              const path = result.routes[0].overview_path;
-              animateRoute(path, 5000); // 5 seconds duration
+              
+              // Create and set the route polyline
+              if (routePolyline) {
+                routePolyline.setMap(null);
+              }
+              const newPolyline = new window.google.maps.Polyline({
+                path: result.routes[0].overview_path,
+                geodesic: true,
+                strokeColor: '#FF0000',
+                strokeOpacity: 1.0,
+                strokeWeight: 2,
+                map: map,
+              });
+              setRoutePolyline(newPolyline);
+
+              animateRoute(result.routes[0].overview_path, 5000);
             } else {
               console.error('Directions request failed:', status);
             }
@@ -96,27 +103,35 @@ const BirthdayMap = ({ locations, guests, currentStep, focusedGuest }) => {
         );
       }
     }
-  }, [mapInstance, locations, currentStep, animateRoute]);
+  }, [map, locations, currentStep]);
 
-  useEffect(() => {
-    if (mapInstance && focusedGuest !== null && guestPositions[focusedGuest]) {
-      console.log('Focusing on guest:', focusedGuest);
-      mapInstance.panTo(guestPositions[focusedGuest]);
-      mapInstance.setZoom(18);
-    }
-  }, [mapInstance, focusedGuest, guestPositions]);
+  const animateRoute = (path, duration) => {
+    const startTime = new Date().getTime();
+    const animate = () => {
+      const now = new Date().getTime();
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
 
-  const handleDragEnd = (index, event) => {
-    console.log('Guest dragged:', index);
-    const newPositions = [...guestPositions];
-    newPositions[index] = { lat: event.latLng.lat(), lng: event.latLng.lng() };
-    setGuestPositions(newPositions);
+      guestMarkers.forEach((marker, index) => {
+        const position = path[Math.floor(progress * (path.length - 1))];
+        marker.setPosition(position);
+      });
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
+    };
+    animate();
   };
 
-  if (loadError) {
-    console.error('Error loading maps:', loadError);
-    return <div>Error loading maps</div>;
-  }
+  useEffect(() => {
+    if (map && focusedGuest !== null && guestMarkers[focusedGuest]) {
+      map.panTo(guestMarkers[focusedGuest].getPosition());
+      map.setZoom(18);
+    }
+  }, [map, focusedGuest, guestMarkers]);
+
+  if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
 
   return (
@@ -125,55 +140,7 @@ const BirthdayMap = ({ locations, guests, currentStep, focusedGuest }) => {
       center={center}
       zoom={15}
       onLoad={onMapLoad}
-    >
-      {locations.map((location, index) => {
-        console.log(`Rendering location marker ${index}:`, location);
-        return (
-          <Marker
-            key={`venue-${index}`}
-            position={location}
-            label={{
-              text: (index + 1).toString(),
-              color: 'white',
-              fontSize: '16px',
-              fontWeight: 'bold',
-            }}
-          />
-        );
-      })}
-      
-      {guestPositions.map((position, index) => (
-        <Marker
-          key={`guest-${index}`}
-          position={position}
-          draggable={true}
-          onDragEnd={(e) => handleDragEnd(index, e)}
-          icon={{
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 20,
-            fillColor: "#4285F4",
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "#FFFFFF",
-          }}
-          label={{
-            text: guests[index].icon,
-            fontSize: "24px",
-            fontWeight: "bold",
-          }}
-        />
-      ))}
-
-      {directions && (
-        <DirectionsRenderer
-          directions={directions}
-          options={{
-            suppressMarkers: true,
-            preserveViewport: true,
-          }}
-        />
-      )}
-    </GoogleMap>
+    />
   );
 };
 
