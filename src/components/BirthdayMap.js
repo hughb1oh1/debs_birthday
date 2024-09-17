@@ -24,11 +24,11 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
   const guestMarkersRef = useRef([]);
   const routePolylinesRef = useRef([]);
   const animationRef = useRef(null);
+  const lastAnimatedStepRef = useRef(-1);
 
   const mapLoad = useCallback((map) => {
     mapRef.current = map;
     
-    // Center on the first location and zoom
     map.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
     map.setZoom(15);
     
@@ -46,10 +46,9 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
       });
 
       marker.addListener('click', () => {
-        onMarkerClick(location);
-        // Prevent map from recentering
         const currentCenter = map.getCenter();
         const currentZoom = map.getZoom();
+        onMarkerClick(location);
         setTimeout(() => {
           map.setCenter(currentCenter);
           map.setZoom(currentZoom);
@@ -173,10 +172,12 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
+      } else {
+        lastAnimatedStepRef.current = currentStep;
       }
     };
     animationRef.current = requestAnimationFrame(animate);
-  }, [getRandomOffset]);
+  }, [getRandomOffset, currentStep]);
 
   useEffect(() => {
     const handleAnimation = async () => {
@@ -191,11 +192,16 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
           });
           
           const currentZoom = mapRef.current.getZoom();
+          const currentCenter = mapRef.current.getCenter();
 
-          const bounds = new window.google.maps.LatLngBounds();
-          result.routes[0].overview_path.forEach((point) => bounds.extend(point));
-          mapRef.current.fitBounds(bounds);
-          mapRef.current.setZoom(currentZoom);
+          if (lastAnimatedStepRef.current !== currentStep) {
+            const bounds = new window.google.maps.LatLngBounds();
+            result.routes[0].overview_path.forEach((point) => bounds.extend(point));
+            mapRef.current.fitBounds(bounds);
+            mapRef.current.setZoom(currentZoom);
+          } else {
+            mapRef.current.setCenter(currentCenter);
+          }
 
           if (isAnimating) {
             animateRoute(result.routes[0].overview_path, 5000);
@@ -220,6 +226,7 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
 
       mapRef.current.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
       mapRef.current.setZoom(15);
+      lastAnimatedStepRef.current = -1;
     }
   }, [currentStep, locations, initializeGuestMarkers]);
 
