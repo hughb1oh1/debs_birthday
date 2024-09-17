@@ -20,15 +20,18 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
     googleMapsApiKey: config.GOOGLE_MAPS_API_KEY,
   });
 
-  const [map, setMap] = useState(null);
-  const [guestMarkers, setGuestMarkers] = useState([]);
-  const [routePolylines, setRoutePolylines] = useState([]);
+  const mapRef = useRef(null);
+  const guestMarkersRef = useRef([]);
+  const routePolylinesRef = useRef([]);
   const animationRef = useRef(null);
+  const currentZoom = useRef(15);
 
   const mapLoad = useCallback((map) => {
-    setMap(map);
+    mapRef.current = map;
     
-    // Add location markers
+    map.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
+    map.setZoom(15);
+    
     locations.forEach((location, index) => {
       const marker = new window.google.maps.Marker({
         position: { lat: location.lat, lng: location.lng },
@@ -42,37 +45,72 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
         },
       });
 
-      marker.addListener('click', () => onMarkerClick(location));
+      marker.addListener('click', () => {
+        onMarkerClick(location);
+        map.panTo(marker.getPosition());
+      });
     });
 
-    // Create polylines for all route segments
     createAllRoutePolylines(map);
+    initializeGuestMarkers(map);
 
     if (onMapLoad) onMapLoad(map);
   }, [locations, onMapLoad, onMarkerClick]);
 
-  const createAllRoutePolylines = async (map) => {
-    const newPolylines = [];
-    for (let i = 0; i < locations.length - 1; i++) {
-      const origin = locations[i];
-      const destination = locations[i + 1];
-      const result = await getDirections(origin, destination);
-      if (result) {
-        const polyline = new window.google.maps.Polyline({
-          path: result.routes[0].overview_path,
-          geodesic: true,
-          strokeColor: '#0000FF',
-          strokeOpacity: 0.5,
-          strokeWeight: 4,
-          map: map,
-        });
-        newPolylines.push(polyline);
-      }
-    }
-    setRoutePolylines(newPolylines);
-  };
+  const initializeGuestMarkers = useCallback((map) => {
+    guestMarkersRef.current = guests.map((guest) => {
+      const offset = getRandomOffset();
+      return new window.google.maps.Marker({
+        position: { 
+          lat: locations[0].lat + offset.lat, 
+          lng: locations[0].lng + offset.lng 
+        },
+        map: map,
+        title: guest.name,
+        draggable: true,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 15,
+          fillColor: "#4285F4",
+          fillOpacity: 1,
+          strokeWeight: 2,
+          strokeColor: "#FFFFFF",
+        },
+        label: {
+          text: guest.icon,
+          fontSize: "24px",
+          fontWeight: "bold",
+        },
+      });
+    });
+  }, [locations]);
 
-  const getDirections = (origin, destination) => {
+  const createAllRoutePolylines = useCallback(async (map) => {
+    try {
+      const newPolylines = [];
+      for (let i = 0; i < locations.length - 1; i++) {
+        const origin = locations[i];
+        const destination = locations[i + 1];
+        const result = await getDirections(origin, destination);
+        if (result) {
+          const polyline = new window.google.maps.Polyline({
+            path: result.routes[0].overview_path,
+            geodesic: true,
+            strokeColor: '#0000FF',
+            strokeOpacity: 0.5,
+            strokeWeight: 4,
+            map: map,
+          });
+          newPolylines.push(polyline);
+        }
+      }
+      routePolylinesRef.current = newPolylines;
+    } catch (error) {
+      console.error("Error creating route polylines:", error);
+    }
+  }, [locations]);
+
+  const getDirections = useCallback((origin, destination) => {
     return new Promise((resolve, reject) => {
       const directionsService = new window.google.maps.DirectionsService();
       directionsService.route(
@@ -85,20 +123,19 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
           if (status === window.google.maps.DirectionsStatus.OK) {
             resolve(result);
           } else {
-            console.error('Directions request failed:', status);
-            reject(null);
+            reject(new Error(`Directions request failed: ${status}`));
           }
         }
       );
     });
-  };
+  }, []);
 
-  const getRandomOffset = () => {
+  const getRandomOffset = useCallback(() => {
     return {
       lat: (Math.random() - 0.5) * 0.0002,
       lng: (Math.random() - 0.5) * 0.0002
     };
-  };
+  }, []);
 
   const animateRoute = useCallback((path, duration) => {
     let startTime;
@@ -107,7 +144,7 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
       const elapsed = timestamp - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      guestMarkers.forEach((marker) => {
+      guestMarkersRef.current.forEach((marker) => {
         const pathIndex = Math.floor(progress * (path.length - 1));
         const nextIndex = Math.min(pathIndex + 1, path.length - 1);
         const segmentProgress = progress * (path.length - 1) - pathIndex;
@@ -118,16 +155,14 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
         const lat = currentPoint.lat() + (nextPoint.lat() - currentPoint.lat()) * segmentProgress;
         const lng = currentPoint.lng() + (nextPoint.lng() - currentPoint.lng()) * segmentProgress;
         
-        // Add a random offset to each guest to simulate shuffling
         const offset = getRandomOffset();
         
         marker.setPosition({ lat: lat + offset.lat, lng: lng + offset.lng });
       });
 
-      // Center the map on the middle of the current segment
-      if (map && progress > 0 && progress < 1) {
+      if (mapRef.current && progress > 0 && progress < 1) {
         const midIndex = Math.floor(path.length / 2);
-        map.panTo(path[midIndex]);
+        mapRef.current.panTo(path[midIndex]);
       }
 
       if (progress < 1) {
@@ -135,75 +170,51 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnima
       }
     };
     animationRef.current = requestAnimationFrame(animate);
-  }, [guestMarkers, map]);
+  }, [getRandomOffset]);
 
   useEffect(() => {
-    if (map && locations && locations.length > 1 && currentStep < locations.length - 1) {
-      const origin = locations[currentStep];
-      const destination = locations[currentStep + 1];
-
-      getDirections(origin, destination).then((result) => {
-        if (result) {
-          // Highlight current route segment
-          routePolylines.forEach((polyline, index) => {
+    const handleAnimation = async () => {
+      if (mapRef.current && locations && locations.length > 1 && currentStep < locations.length - 1) {
+        try {
+          const origin = locations[currentStep];
+          const destination = locations[currentStep + 1];
+          const result = await getDirections(origin, destination);
+          
+          routePolylinesRef.current.forEach((polyline, index) => {
             polyline.setOptions({ strokeOpacity: index === currentStep ? 1.0 : 0.5 });
           });
           
-          // Center and zoom on the current segment
+          currentZoom.current = mapRef.current.getZoom();
+
           const bounds = new window.google.maps.LatLngBounds();
           result.routes[0].overview_path.forEach((point) => bounds.extend(point));
-          map.fitBounds(bounds);
+          mapRef.current.panToBounds(bounds);
 
           if (isAnimating) {
             animateRoute(result.routes[0].overview_path, 5000);
           }
+        } catch (error) {
+          console.error("Error during animation:", error);
         }
-      });
-    }
-  }, [map, locations, currentStep, routePolylines, animateRoute, isAnimating]);
+      }
+    };
+
+    handleAnimation();
+  }, [currentStep, isAnimating, locations, getDirections, animateRoute]);
 
   useEffect(() => {
-    if (map && currentStep === 0) {
-      // Clear existing guest markers
-      guestMarkers.forEach(marker => marker.setMap(null));
-      
-      // Create new guest markers at Wynyard Station
-      const newGuestMarkers = guests.map((guest) => {
-        const offset = getRandomOffset();
-        return new window.google.maps.Marker({
-          position: { 
-            lat: locations[0].lat + offset.lat, 
-            lng: locations[0].lng + offset.lng 
-          },
-          map: map,
-          title: guest.name,
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 15,
-            fillColor: "#4285F4",
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "#FFFFFF",
-          },
-          label: {
-            text: guest.icon,
-            fontSize: "24px",
-            fontWeight: "bold",
-          },
-        });
-      });
-      setGuestMarkers(newGuestMarkers);
+    if (mapRef.current && currentStep === 0) {
+      guestMarkersRef.current.forEach(marker => marker.setMap(null));
+      initializeGuestMarkers(mapRef.current);
 
-      // Reset polyline opacity
-      routePolylines.forEach((polyline) => {
+      routePolylinesRef.current.forEach((polyline) => {
         polyline.setOptions({ strokeOpacity: 0.5 });
       });
 
-      // Center on Wynyard Station
-      map.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
-      map.setZoom(15);
+      mapRef.current.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
+      mapRef.current.setZoom(15);
     }
-  }, [map, currentStep, locations, routePolylines]);
+  }, [currentStep, locations, initializeGuestMarkers]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
