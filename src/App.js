@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import BirthdayMap from './components/BirthdayMap';
 import { PlayIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import './App.css';
