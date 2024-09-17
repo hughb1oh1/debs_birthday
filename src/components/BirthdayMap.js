@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { GoogleMap, useLoadScript, Marker, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import config from '../config.json';
 
 const mapContainerStyle = { width: '100%', height: '100%' };
@@ -8,7 +8,7 @@ const center = { lat: -33.8568, lng: 151.2153 }; // Sydney's coordinates
 const BirthdayMap = ({ locations, guests, currentStep, focusedGuest }) => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: config.GOOGLE_MAPS_API_KEY,
-    libraries: ['directions'],
+    // Removed the libraries array
   });
 
   const mapRef = useRef();
