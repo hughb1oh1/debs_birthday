@@ -3,7 +3,6 @@ import { GoogleMap, useLoadScript } from '@react-google-maps/api';
 import config from '../config.json';
 
 const mapContainerStyle = { width: '100%', height: '100%' };
-const center = { lat: -33.8665, lng: 151.2074 }; // Wynyard station coordinates
 
 const guests = [
   { name: "Guest 1", icon: "👩" },
@@ -16,7 +15,7 @@ const guests = [
   { name: "Guest 8", icon: "👴" }
 ];
 
-const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick }) => {
+const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick, isAnimating }) => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: config.GOOGLE_MAPS_API_KEY,
   });
@@ -52,9 +51,22 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick }) => {
       marker.addListener('click', () => onMarkerClick(location));
     });
 
-    // Initialize guest markers at the start location (Wynyard)
+    // Initialize guest markers at the start location
+    initializeGuestMarkers(map);
+
+    // Create polylines for all route segments
+    createAllRoutePolylines(map);
+
+    // Center on the first venue
+    map.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
+    map.setZoom(15);
+
+    if (onMapLoad) onMapLoad(map);
+  }, [locations, onMapLoad, onMarkerClick]);
+
+  const initializeGuestMarkers = useCallback((map) => {
     const startLocation = locations[0];
-    const initialGuestMarkers = guests.map((guest, index) => {
+    const initialGuestMarkers = guests.map((guest) => {
       const offset = getRandomOffset();
       return new window.google.maps.Marker({
         position: { 
@@ -79,16 +91,7 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick }) => {
       });
     });
     setGuestMarkers(initialGuestMarkers);
-
-    // Create polylines for all route segments
-    createAllRoutePolylines(map);
-
-    // Center on the first venue (index 1, as 0 is Wynyard)
-    map.setCenter({ lat: locations[1].lat, lng: locations[1].lng });
-    map.setZoom(15);
-
-    if (onMapLoad) onMapLoad(map);
-  }, [locations, onMapLoad, onMarkerClick]);
+  }, [locations]);
 
   const createAllRoutePolylines = async (map) => {
     const newPolylines = [];
@@ -146,7 +149,7 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick }) => {
       const elapsed = timestamp - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      guestMarkers.forEach((marker, index) => {
+      guestMarkers.forEach((marker) => {
         const pathIndex = Math.floor(progress * (path.length - 1));
         const nextIndex = Math.min(pathIndex + 1, path.length - 1);
         const segmentProgress = progress * (path.length - 1) - pathIndex;
@@ -171,7 +174,7 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick }) => {
   }, [guestMarkers]);
 
   useEffect(() => {
-    if (map && locations && locations.length > 1 && currentStep < locations.length - 1) {
+    if (map && locations && locations.length > 1 && currentStep < locations.length - 1 && isAnimating) {
       const origin = locations[currentStep];
       const destination = locations[currentStep + 1];
 
@@ -179,14 +182,35 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick }) => {
         if (result) {
           animateRoute(result.routes[0].overview_path, 5000);
           
-          // Highlight current route segment
+          // Highlight current route segment and center map
           routePolylines.forEach((polyline, index) => {
             polyline.setOptions({ strokeOpacity: index === currentStep ? 1.0 : 0.5 });
           });
+          
+          // Center map on the middle of the current segment
+          const path = result.routes[0].overview_path;
+          const midPoint = path[Math.floor(path.length / 2)];
+          map.panTo(midPoint);
         }
       });
     }
-  }, [map, locations, currentStep, routePolylines, animateRoute]);
+  }, [map, locations, currentStep, routePolylines, animateRoute, isAnimating]);
+
+  useEffect(() => {
+    if (map && currentStep === 0) {
+      // Reset guest markers to start position
+      initializeGuestMarkers(map);
+      
+      // Reset polyline opacity
+      routePolylines.forEach((polyline) => {
+        polyline.setOptions({ strokeOpacity: 0.5 });
+      });
+
+      // Center on the first location
+      map.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
+      map.setZoom(15);
+    }
+  }, [map, currentStep, locations, initializeGuestMarkers, routePolylines]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
@@ -194,7 +218,7 @@ const BirthdayMap = ({ locations, currentStep, onMapLoad, onMarkerClick }) => {
   return (
     <GoogleMap
       mapContainerStyle={mapContainerStyle}
-      center={center}
+      center={{ lat: locations[0].lat, lng: locations[0].lng }}
       zoom={15}
       onLoad={mapLoad}
     />

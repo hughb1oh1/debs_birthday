@@ -29,11 +29,7 @@ function App() {
   const handleReset = useCallback(() => {
     setCurrentStep(0);
     setIsAnimating(false);
-    if (map) {
-      map.setCenter({ lat: locations[1].lat, lng: locations[1].lng });
-      map.setZoom(15);
-    }
-  }, [map]);
+  }, []);
 
   const onMapLoad = useCallback((mapInstance) => {
     setMap(mapInstance);
@@ -61,6 +57,7 @@ function App() {
           currentStep={currentStep}
           onMapLoad={onMapLoad}
           onMarkerClick={handleMarkerClick}
+          isAnimating={isAnimating}
         />
       </div>
       <div className="controls-overlay">
