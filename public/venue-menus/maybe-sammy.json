@@ -1,5 +1,9 @@
 {
   "summary": "Maybe Sammy....",
+  "details": {
+    "heading": "Maybe Sammy",
+    "content": "<p>Established in </p>"
+  },
   "items": [
     { "name": "Burger", "price": 15 },
     { "name": "Fish and Chips", "price": 18 },

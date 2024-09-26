@@ -1,5 +1,9 @@
 {
   "summary": "The La Renaissance Patisserie ....",
+  "details": {
+    "heading": "The La Renaissance Patisserie",
+    "content": "<p>Established in 1921 .</p>"
+  },
   "items": [
     { "name": "Burger", "price": 15 },
     { "name": "Fish and Chips", "price": 18 },

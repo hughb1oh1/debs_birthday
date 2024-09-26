@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import React, { useCallback, useEffect, useRef, useImperativeHandle, forwardRef, useState } from 'react';
 import { GoogleMap, useLoadScript } from '@react-google-maps/api';
 import config from '../config.json';
 
@@ -26,6 +26,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
   const animationRef = useRef(null);
   const currentPathRef = useRef(null);
   const currentProgressRef = useRef(0);
+  const [selectedVenue, setSelectedVenue] = useState(null);
 
   const getRandomOffset = useCallback(() => {
     return {
@@ -124,6 +125,23 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     }
   }), [locations, getRandomOffset]);
 
+  const fetchVenueDetails = useCallback(async (venueName) => {
+    try {
+      const response = await fetch(`${process.env.PUBLIC_URL}/venue-menus/${venueName.toLowerCase().replace(/\s+/g, '-')}.json`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (!data.details) {
+        throw new Error("Details property not found in JSON");
+      }
+      setSelectedVenue(data.details);
+    } catch (error) {
+      console.error('Error fetching venue details:', error);
+      setSelectedVenue({ heading: "Error", content: "Venue details not available" });
+    }
+  }, []);
+
   const mapLoad = useCallback((map) => {
     mapRef.current = map;
     
@@ -131,16 +149,20 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     map.setZoom(config.zoomLevels.initial);
     
     locations.forEach((location) => {
-      new window.google.maps.Marker({
+      const marker = new window.google.maps.Marker({
         position: { lat: location.lat, lng: location.lng },
         map: map,
         title: location.name,
         label: {
-          text: location.name,
+          text: location.marker_label || location.name,
           color: 'black',
           fontSize: '14px',
           fontWeight: 'bold',
         },
+      });
+
+      marker.addListener('click', () => {
+        fetchVenueDetails(location.name);
       });
     });
 
@@ -148,7 +170,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     initializeGuestMarkers(map);
 
     if (onMapLoad) onMapLoad(ref.current);
-  }, [locations, onMapLoad, ref, createAllRoutePolylines, initializeGuestMarkers]);
+  }, [locations, onMapLoad, ref, createAllRoutePolylines, initializeGuestMarkers, fetchVenueDetails]);
 
   const animateRoute = useCallback((path, duration) => {
     let startTime;
@@ -219,12 +241,23 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
   if (!isLoaded) return <div>Loading maps</div>;
 
   return (
-    <GoogleMap
-      mapContainerStyle={mapContainerStyle}
-      center={{ lat: mapCenter.lat, lng: mapCenter.lng }}
-      zoom={config.zoomLevels.initial}
-      onLoad={mapLoad}
-    />
+    <>
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={{ lat: mapCenter.lat, lng: mapCenter.lng }}
+        zoom={config.zoomLevels.initial}
+        onLoad={mapLoad}
+      />
+      {selectedVenue && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>{selectedVenue.heading}</h2>
+            <div dangerouslySetInnerHTML={{ __html: selectedVenue.content }} />
+            <button onClick={() => setSelectedVenue(null)}>Close</button>
+          </div>
+        </div>
+      )}
+    </>
   );
 });
 

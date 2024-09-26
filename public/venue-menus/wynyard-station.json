@@ -1,5 +1,9 @@
 {
   "summary": "Wynyard Station is the start of our journey for those that caught the B1",
+  "details": {
+    "heading": "Wynyard Station",
+    "content": "<p>Established in 1921, </p>"
+  },
   "items": [
     { "name": "Burger", "price": 15 },
     { "name": "Fish and Chips", "price": 18 },

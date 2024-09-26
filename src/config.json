@@ -2,8 +2,8 @@
   "GOOGLE_MAPS_API_KEY": "AIzaSyBMRljFnpbjoFMJDzO1NzDpJrq6Wm_F0jk",
   "zoomLevels": {
     "initial": 15,
-    "following": 17,
-    "destination": 16
+    "following": 18,
+    "destination": 18
   },
   "animationSpeed": 5000,
   "pauseDuration": 3000,

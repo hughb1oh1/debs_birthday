@@ -5,11 +5,11 @@ import './App.css';
 import config from './config.json';
 
 const locations = [
-  { name: "Wynyard Station", lat: -33.8665, lng: 151.2074 },
-  { name: "The Glenmore Hotel", lat: -33.8599, lng: 151.2090 },
-  { name: "Maybe Sammy", lat: -33.8614, lng: 151.2082 },
-  { name: "Tayim", lat: -33.8608, lng: 151.2082 },
-  { name: "La Renaissance Patisserie", lat: -33.8593, lng: 151.2080 }
+  { name: "Wynyard Station", lat: -33.8665, lng: 151.2074, marker_label: "Wynyard<br/>Station" },
+  { name: "The Glenmore Hotel", lat: -33.8599, lng: 151.2090, marker_label: "The Glenmore<br/>Hotel" },
+  { name: "Maybe Sammy", lat: -33.8614, lng: 151.2082, marker_label: "Maybe<br/>Sammy" },
+  { name: "Tayim", lat: -33.8608, lng: 151.2082, marker_label: "Tayim"},
+  { name: "La Renaissance Patisserie", lat: -33.8593, lng: 151.2080, marker_label: "La Renaissance<br/>Patisserie" }
 ];
 
 function App() {
@@ -86,6 +86,8 @@ function App() {
         setVenueSummary(null);
         if (currentStep < locations.length - 1) {
           setIsAnimating(true);
+        } else {
+          setShowEndDialog(config.endDialog.show);
         }
       }, config.pauseDuration);
     }

@@ -1,5 +1,9 @@
 {
   "summary": "Tayim...",
+  "details": {
+    "heading": "Tayim",
+    "content": "<p>Tayim</p>"
+  },
   "items": [
     { "name": "Burger", "price": 15 },
     { "name": "Fish and Chips", "price": 18 },
