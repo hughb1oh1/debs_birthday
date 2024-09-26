@@ -1,0 +1,12 @@
+{
+  "summary": "The Glenmore Hotel offers panoramic views of Sydney Harbour and the city skyline. Established in 1921, it boasts a rich history and a rooftop bar perfect for enjoying the sunset.",
+  "details": {
+    "heading": "The Glenmore Hotel",
+    "content": "<p>Established in 1921, The Glenmore Hotel boasts a rich history and a rooftop bar perfect for enjoying the sunset.</p><ul><li>Panoramic views of Sydney Harbour</li><li>Classic pub atmosphere</li><li>Rooftop bar</li></ul><p>Learn more on our <a href='https://theglenmore.com.au' target='_blank'>website</a>.</p>"
+  },
+  "items": [
+    { "name": "Burger", "price": 15 },
+    { "name": "Fish and Chips", "price": 18 },
+    { "name": "Caesar Salad", "price": 12 }
+  ]
+}
