@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useImperativeHandle, forwardRef, useState } from 'react';
 import { GoogleMap, useLoadScript, OverlayView } from '@react-google-maps/api';
-import config from '../config.json';
+import config from '../config';
 
 const mapContainerStyle = { width: '100%', height: '100%' };
 
