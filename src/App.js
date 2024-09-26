@@ -13,20 +13,23 @@ const locations = [
 ];
 
 function App() {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(-1);
   const [isAnimating, setIsAnimating] = useState(false);
   const [venueSummary, setVenueSummary] = useState(null);
   const mapRef = useRef(null);
 
   const handlePlay = useCallback(() => {
-    if (!isAnimating && currentStep < locations.length - 1) {
+    if (currentStep === -1) {
+      setCurrentStep(0);
+      fetchVenueSummary(locations[0].name);
+    } else if (!isAnimating && currentStep < locations.length - 1) {
       setIsAnimating(true);
       setCurrentStep(prev => prev + 1);
     }
   }, [currentStep, isAnimating]);
 
   const handleReset = useCallback(() => {
-    setCurrentStep(0);
+    setCurrentStep(-1);
     setIsAnimating(false);
     setVenueSummary(null);
     if (mapRef.current) {
@@ -40,12 +43,17 @@ function App() {
 
   const handleAnimationComplete = useCallback(() => {
     setIsAnimating(false);
-    fetchVenueSummary(locations[currentStep].name);
+    if (currentStep < locations.length - 1) {
+      fetchVenueSummary(locations[currentStep + 1].name);
+    }
   }, [currentStep]);
 
   const fetchVenueSummary = async (venueName) => {
     try {
       const response = await fetch(`/menus/${venueName.toLowerCase().replace(/\s+/g, '-')}.json`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setVenueSummary(data.summary);
     } catch (error) {
@@ -89,7 +97,7 @@ function App() {
       {venueSummary && (
         <div className="modal">
           <div className="modal-content">
-            <h2>{locations[currentStep].name}</h2>
+            <h2>{locations[currentStep === -1 ? 0 : currentStep].name}</h2>
             <p>{venueSummary}</p>
           </div>
         </div>

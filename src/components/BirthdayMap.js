@@ -171,10 +171,13 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
         marker.setPosition({ lat: lat + offset.lat, lng: lng + offset.lng });
       });
 
-      if (mapRef.current && progress > 0 && progress < 1) {
-        const midIndex = Math.floor(path.length / 2);
-        mapRef.current.panTo(path[midIndex]);
-        mapRef.current.setZoom(config.zoomLevels.following);
+      if (mapRef.current) {
+        const bounds = new window.google.maps.LatLngBounds();
+        guestMarkersRef.current.forEach(marker => bounds.extend(marker.getPosition()));
+        mapRef.current.fitBounds(bounds);
+        
+        const zoom = mapRef.current.getZoom();
+        mapRef.current.setZoom(Math.min(zoom, config.zoomLevels.following));
       }
 
       if (progress < 1) {
@@ -194,9 +197,9 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
 
   useEffect(() => {
     const handleAnimation = async () => {
-      if (mapRef.current && locations && locations.length > 1 && currentStep < locations.length && isAnimating) {
+      if (mapRef.current && locations && locations.length > 1 && currentStep > 0 && currentStep < locations.length && isAnimating) {
         try {
-          const origin = currentStep === 0 ? locations[0] : locations[currentStep - 1];
+          const origin = locations[currentStep - 1];
           const destination = locations[currentStep];
           const result = await getDirections(origin, destination);
           
