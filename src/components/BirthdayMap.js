@@ -25,6 +25,8 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
   const routePolylinesRef = useRef([]);
   const animationRef = useRef(null);
   const lastAnimatedStepRef = useRef(-1);
+  const currentPathRef = useRef(null);
+  const currentProgressRef = useRef(0);
 
   useImperativeHandle(ref, () => ({
     resetMap: () => {
@@ -39,6 +41,8 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
           });
         });
         lastAnimatedStepRef.current = -1;
+        currentPathRef.current = null;
+        currentProgressRef.current = 0;
       }
     }
   }));
@@ -148,12 +152,14 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     };
   }, []);
 
-  const animateRoute = useCallback((path, duration) => {
+  const animateRoute = useCallback((path, duration, startProgress = 0) => {
     let startTime;
+    currentPathRef.current = path;
     const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
+      if (!startTime) startTime = timestamp - (startProgress * duration);
       const elapsed = timestamp - startTime;
       const progress = Math.min(elapsed / duration, 1);
+      currentProgressRef.current = progress;
 
       guestMarkersRef.current.forEach((marker) => {
         const pathIndex = Math.floor(progress * (path.length - 1));
@@ -180,9 +186,9 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
         mapRef.current.setZoom(Math.min(zoom, config.zoomLevels.following));
       }
 
-      if (progress < 1) {
+      if (progress < 1 && isAnimating) {
         animationRef.current = requestAnimationFrame(animate);
-      } else {
+      } else if (progress >= 1) {
         lastAnimatedStepRef.current = currentStep;
         if (mapRef.current) {
           const destination = locations[currentStep];
@@ -193,17 +199,30 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
       }
     };
     animationRef.current = requestAnimationFrame(animate);
-  }, [currentStep, onAnimationComplete, getRandomOffset, locations]);
+  }, [currentStep, onAnimationComplete, getRandomOffset, locations, isAnimating]);
 
   useEffect(() => {
     const handleAnimation = async () => {
-      if (mapRef.current && locations && locations.length > 1 && currentStep > 0 && currentStep < locations.length && isAnimating) {
+      if (mapRef.current && locations && locations.length > 1 && currentStep > 0 && currentStep < locations.length) {
         try {
           const origin = locations[currentStep - 1];
           const destination = locations[currentStep];
           const result = await getDirections(origin, destination);
           
-          animateRoute(result.routes[0].overview_path, config.animationSpeed);
+          if (isAnimating) {
+            animateRoute(result.routes[0].overview_path, config.animationSpeed, currentProgressRef.current);
+          } else if (currentPathRef.current) {
+            // If animation is paused, update guest positions without animating
+            guestMarkersRef.current.forEach((marker) => {
+              const pathIndex = Math.floor(currentProgressRef.current * (currentPathRef.current.length - 1));
+              const currentPoint = currentPathRef.current[pathIndex];
+              const offset = getRandomOffset();
+              marker.setPosition({ 
+                lat: currentPoint.lat() + offset.lat, 
+                lng: currentPoint.lng() + offset.lng 
+              });
+            });
+          }
         } catch (error) {
           console.error("Error during animation:", error);
         }

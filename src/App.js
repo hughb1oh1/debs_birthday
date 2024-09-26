@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import BirthdayMap from './components/BirthdayMap';
-import { PlayIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
+import { PlayIcon, PauseIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import './App.css';
 import config from './config.json';
 
@@ -28,6 +28,10 @@ function App() {
     }
   }, [currentStep, isAnimating]);
 
+  const handlePause = useCallback(() => {
+    setIsAnimating(false);
+  }, []);
+
   const handleReset = useCallback(() => {
     setCurrentStep(-1);
     setIsAnimating(false);
@@ -54,7 +58,14 @@ function App() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new TypeError("Oops, we haven't got JSON!");
+      }
       const data = await response.json();
+      if (!data.summary) {
+        throw new Error("Summary property not found in JSON");
+      }
       setVenueSummary(data.summary);
     } catch (error) {
       console.error('Error fetching venue summary:', error);
@@ -89,6 +100,9 @@ function App() {
       <div className="controls-overlay">
         <button onClick={handlePlay} disabled={isAnimating || currentStep === locations.length - 1}>
           <PlayIcon className="h-8 w-8" />
+        </button>
+        <button onClick={handlePause} disabled={!isAnimating}>
+          <PauseIcon className="h-8 w-8" />
         </button>
         <button onClick={handleReset}>
           <ArrowPathIcon className="h-8 w-8" />
