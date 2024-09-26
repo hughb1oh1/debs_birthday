@@ -16,11 +16,13 @@ function App() {
   const [currentStep, setCurrentStep] = useState(-1);
   const [isAnimating, setIsAnimating] = useState(false);
   const [venueSummary, setVenueSummary] = useState(null);
+  const [mapCenter, setMapCenter] = useState(locations[0]);
   const mapRef = useRef(null);
 
   const handlePlay = useCallback(() => {
     if (currentStep === -1) {
       setCurrentStep(0);
+      setMapCenter(locations[0]);
       fetchVenueSummary(locations[0].name);
     } else if (!isAnimating && currentStep < locations.length - 1) {
       setIsAnimating(true);
@@ -35,6 +37,7 @@ function App() {
     setCurrentStep(-1);
     setIsAnimating(false);
     setVenueSummary(null);
+    setMapCenter(locations[0]);
     if (mapRef.current) {
       mapRef.current.resetMap();
     }
@@ -49,10 +52,8 @@ function App() {
     if (currentStep < locations.length - 1) {
       const nextStep = currentStep + 1;
       setCurrentStep(nextStep);
+      setMapCenter(locations[nextStep]);
       fetchVenueSummary(locations[nextStep].name);
-      if (mapRef.current && mapRef.current.centerOnLocation) {
-        mapRef.current.centerOnLocation(locations[nextStep]);
-      }
     }
   }, [currentStep]);
 
@@ -86,12 +87,6 @@ function App() {
     return () => clearTimeout(timer);
   }, [venueSummary, currentStep]);
 
-  useEffect(() => {
-    if (currentStep >= 0 && currentStep < locations.length && mapRef.current && mapRef.current.centerOnLocation) {
-      mapRef.current.centerOnLocation(locations[currentStep]);
-    }
-  }, [currentStep]);
-
   return (
     <div className="App">
       <div className="map-container">
@@ -102,6 +97,7 @@ function App() {
           onMapLoad={onMapLoad}
           isAnimating={isAnimating}
           onAnimationComplete={handleAnimationComplete}
+          mapCenter={mapCenter}
         />
       </div>
       <div className="controls-overlay">

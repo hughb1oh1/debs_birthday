@@ -15,7 +15,7 @@ const guests = [
   { name: "Guest 8", icon: "👴" }
 ];
 
-const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating, onAnimationComplete }, ref) => {
+const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating, onAnimationComplete, mapCenter }, ref) => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: config.GOOGLE_MAPS_API_KEY,
   });
@@ -106,20 +106,6 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     });
   }, [locations, getRandomOffset]);
 
-  const centerOnLocation = useCallback((location) => {
-    if (mapRef.current) {
-      mapRef.current.panTo({ lat: location.lat, lng: location.lng });
-      mapRef.current.setZoom(config.zoomLevels.destination);
-      guestMarkersRef.current.forEach(marker => {
-        const offset = getRandomOffset();
-        marker.setPosition({ 
-          lat: location.lat + offset.lat, 
-          lng: location.lng + offset.lng 
-        });
-      });
-    }
-  }, [getRandomOffset]);
-
   useImperativeHandle(ref, () => ({
     resetMap: () => {
       if (mapRef.current) {
@@ -135,9 +121,8 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
         currentPathRef.current = null;
         currentProgressRef.current = 0;
       }
-    },
-    centerOnLocation
-  }), [locations, getRandomOffset, centerOnLocation]);
+    }
+  }), [locations, getRandomOffset]);
 
   const mapLoad = useCallback((map) => {
     mapRef.current = map;
@@ -162,7 +147,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     createAllRoutePolylines(map);
     initializeGuestMarkers(map);
 
-    if (onMapLoad) onMapLoad({ resetMap: ref.current.resetMap, centerOnLocation: ref.current.centerOnLocation });
+    if (onMapLoad) onMapLoad(ref.current);
   }, [locations, onMapLoad, ref, createAllRoutePolylines, initializeGuestMarkers]);
 
   const animateRoute = useCallback((path, duration) => {
@@ -208,24 +193,27 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
 
   useEffect(() => {
     const handleAnimation = async () => {
-      if (mapRef.current && locations && currentStep >= 0 && currentStep < locations.length) {
+      if (mapRef.current && locations && currentStep >= 0 && currentStep < locations.length - 1 && isAnimating) {
         const currentLocation = locations[currentStep];
-        centerOnLocation(currentLocation);
-
-        if (currentStep < locations.length - 1 && isAnimating) {
-          const nextLocation = locations[currentStep + 1];
-          try {
-            const result = await getDirections(currentLocation, nextLocation);
-            animateRoute(result.routes[0].overview_path, config.animationSpeed);
-          } catch (error) {
-            console.error("Error during animation:", error);
-          }
+        const nextLocation = locations[currentStep + 1];
+        try {
+          const result = await getDirections(currentLocation, nextLocation);
+          animateRoute(result.routes[0].overview_path, config.animationSpeed);
+        } catch (error) {
+          console.error("Error during animation:", error);
         }
       }
     };
 
     handleAnimation();
-  }, [currentStep, isAnimating, locations, getDirections, animateRoute, centerOnLocation]);
+  }, [currentStep, isAnimating, locations, getDirections, animateRoute]);
+
+  useEffect(() => {
+    if (mapRef.current && mapCenter) {
+      mapRef.current.panTo({ lat: mapCenter.lat, lng: mapCenter.lng });
+      mapRef.current.setZoom(config.zoomLevels.destination);
+    }
+  }, [mapCenter]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
@@ -233,7 +221,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
   return (
     <GoogleMap
       mapContainerStyle={mapContainerStyle}
-      center={{ lat: locations[0].lat, lng: locations[0].lng }}
+      center={{ lat: mapCenter.lat, lng: mapCenter.lng }}
       zoom={config.zoomLevels.initial}
       onLoad={mapLoad}
     />
