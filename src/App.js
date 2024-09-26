@@ -17,6 +17,8 @@ function App() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [venueSummary, setVenueSummary] = useState(null);
   const [mapCenter, setMapCenter] = useState(locations[0]);
+  const [showStartDialog, setShowStartDialog] = useState(config.startDialog.show);
+  const [showEndDialog, setShowEndDialog] = useState(false);
   const mapRef = useRef(null);
 
   const handlePlay = useCallback(() => {
@@ -38,6 +40,7 @@ function App() {
     setIsAnimating(false);
     setVenueSummary(null);
     setMapCenter(locations[0]);
+    setShowEndDialog(false);
     if (mapRef.current) {
       mapRef.current.resetMap();
     }
@@ -54,6 +57,8 @@ function App() {
       setCurrentStep(nextStep);
       setMapCenter(locations[nextStep]);
       fetchVenueSummary(locations[nextStep].name);
+    } else {
+      setShowEndDialog(config.endDialog.show);
     }
   }, [currentStep]);
 
@@ -87,6 +92,16 @@ function App() {
     return () => clearTimeout(timer);
   }, [venueSummary, currentStep]);
 
+  const renderDialog = (dialog, onClose) => (
+    <div className="modal">
+      <div className="modal-content">
+        <h2>{dialog.heading}</h2>
+        <div dangerouslySetInnerHTML={{ __html: dialog.content }} />
+        <button onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="App">
       <div className="map-container">
@@ -111,11 +126,13 @@ function App() {
           <ArrowPathIcon className="h-8 w-8" />
         </button>
       </div>
+      {showStartDialog && renderDialog(config.startDialog, () => setShowStartDialog(false))}
+      {showEndDialog && renderDialog(config.endDialog, () => setShowEndDialog(false))}
       {venueSummary && (
         <div className="modal">
           <div className="modal-content">
             <h2>{locations[currentStep].name}</h2>
-            <p>{venueSummary}</p>
+            <div dangerouslySetInnerHTML={{ __html: venueSummary }} />
           </div>
         </div>
       )}

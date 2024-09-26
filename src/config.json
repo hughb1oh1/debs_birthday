@@ -2,9 +2,19 @@
   "GOOGLE_MAPS_API_KEY": "AIzaSyBMRljFnpbjoFMJDzO1NzDpJrq6Wm_F0jk",
   "zoomLevels": {
     "initial": 15,
-    "following": 18,
-    "destination": 18
+    "following": 17,
+    "destination": 16
   },
   "animationSpeed": 5000,
-  "pauseDuration": 3000
+  "pauseDuration": 3000,
+  "startDialog": {
+    "show": true,
+    "heading": "Welcome to Deb's 60th birthday",
+    "content": "This is a short overview of the route and locations for the day. After our brief presentation you can click on the location markers to see details of the venues with highlighted menu items prices and more! Learn more about the event <a href='https://example.com/debs-birthday' target='_blank'>here</a>."
+  },
+  "endDialog": {
+    "show": true,
+    "heading": "I hope you enjoyed the tour",
+    "content": "Feel free to move about the map and explore! Check out more photos from the event <a href='https://example.com/debs-birthday-photos' target='_blank'>here</a>."
+  }
 }
