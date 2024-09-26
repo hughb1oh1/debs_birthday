@@ -1,4 +1,5 @@
-{ "PUBLIC_URL": "/debs_birthday",
+{ 
+  "PUBLIC_URL": "/debs_birthday",
   "zoomLevels": {
     "initial": 15,
     "following": 18,
