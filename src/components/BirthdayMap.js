@@ -125,6 +125,12 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
         currentPathRef.current = null;
         currentProgressRef.current = 0;
       }
+    },
+    stopAnimation: () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
     }
   }), [locations, getRandomOffset]);
 

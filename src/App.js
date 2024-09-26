@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import BirthdayMap from './components/BirthdayMap';
-import { PlayIcon, PauseIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
+import { PlayIcon, StopIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import './App.css';
 import config from './config.json';
 
@@ -31,8 +31,11 @@ function App() {
     }
   }, [currentStep, isAnimating]);
 
-  const handlePause = useCallback(() => {
+  const handleStop = useCallback(() => {
     setIsAnimating(false);
+    if (mapRef.current) {
+      mapRef.current.stopAnimation();
+    }
   }, []);
 
   const handleReset = useCallback(() => {
@@ -121,8 +124,8 @@ function App() {
         <button onClick={handlePlay} disabled={isAnimating || currentStep === locations.length - 1}>
           <PlayIcon className="h-8 w-8" />
         </button>
-        <button onClick={handlePause} disabled={!isAnimating}>
-          <PauseIcon className="h-8 w-8" />
+        <button onClick={handleStop} disabled={!isAnimating}>
+          <StopIcon className="h-8 w-8" />
         </button>
         <button onClick={handleReset}>
           <ArrowPathIcon className="h-8 w-8" />
