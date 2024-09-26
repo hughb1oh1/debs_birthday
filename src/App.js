@@ -70,13 +70,16 @@ function App() {
   };
 
   useEffect(() => {
-    if (venueSummary && currentStep < locations.length - 1) {
-      const timer = setTimeout(() => {
+    let timer;
+    if (venueSummary) {
+      timer = setTimeout(() => {
         setVenueSummary(null);
-        setIsAnimating(true);
+        if (currentStep < locations.length - 1) {
+          setIsAnimating(true);
+        }
       }, config.pauseDuration);
-      return () => clearTimeout(timer);
     }
+    return () => clearTimeout(timer);
   }, [venueSummary, currentStep]);
 
   return (
