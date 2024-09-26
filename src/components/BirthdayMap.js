@@ -181,25 +181,29 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
         const bounds = new window.google.maps.LatLngBounds();
         guestMarkersRef.current.forEach(marker => bounds.extend(marker.getPosition()));
         mapRef.current.fitBounds(bounds);
-        
-        const zoom = mapRef.current.getZoom();
-        mapRef.current.setZoom(Math.min(zoom, config.zoomLevels.following));
+        mapRef.current.setZoom(Math.min(mapRef.current.getZoom(), config.zoomLevels.following));
       }
 
       if (progress < 1 && isAnimating) {
         animationRef.current = requestAnimationFrame(animate);
       } else if (progress >= 1) {
         lastAnimatedStepRef.current = currentStep;
-        if (mapRef.current) {
-          const destination = locations[currentStep];
-          mapRef.current.setCenter({ lat: destination.lat, lng: destination.lng });
-          mapRef.current.setZoom(config.zoomLevels.destination);
-        }
         onAnimationComplete();
       }
     };
     animationRef.current = requestAnimationFrame(animate);
-  }, [currentStep, onAnimationComplete, getRandomOffset, locations, isAnimating]);
+  }, [currentStep, onAnimationComplete, getRandomOffset, isAnimating]);
+
+  const centerMapOnNextRoute = useCallback((currentStep) => {
+    if (currentStep < locations.length - 1 && mapRef.current) {
+      const currentLocation = locations[currentStep];
+      const nextLocation = locations[currentStep + 1];
+      const midLat = (currentLocation.lat + nextLocation.lat) / 2;
+      const midLng = (currentLocation.lng + nextLocation.lng) / 2;
+      mapRef.current.setCenter({ lat: midLat, lng: midLng });
+      mapRef.current.setZoom(config.zoomLevels.initial);
+    }
+  }, [locations]);
 
   useEffect(() => {
     const handleAnimation = async () => {
@@ -209,6 +213,8 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
           const destination = locations[currentStep];
           const result = await getDirections(origin, destination);
           
+          centerMapOnNextRoute(currentStep);
+
           if (isAnimating) {
             animateRoute(result.routes[0].overview_path, config.animationSpeed, currentProgressRef.current);
           } else if (currentPathRef.current) {
@@ -230,7 +236,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     };
 
     handleAnimation();
-  }, [currentStep, isAnimating, locations, getDirections, animateRoute]);
+  }, [currentStep, isAnimating, locations, getDirections, animateRoute, centerMapOnNextRoute]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
