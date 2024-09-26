@@ -47,8 +47,12 @@ function App() {
   const handleAnimationComplete = useCallback(() => {
     setIsAnimating(false);
     if (currentStep < locations.length - 1) {
-      setCurrentStep(prev => prev + 1);
-      fetchVenueSummary(locations[currentStep + 1].name);
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      fetchVenueSummary(locations[nextStep].name);
+      if (mapRef.current && mapRef.current.centerOnLocation) {
+        mapRef.current.centerOnLocation(locations[nextStep]);
+      }
     }
   }, [currentStep]);
 
@@ -81,6 +85,12 @@ function App() {
     }
     return () => clearTimeout(timer);
   }, [venueSummary, currentStep]);
+
+  useEffect(() => {
+    if (currentStep >= 0 && currentStep < locations.length && mapRef.current && mapRef.current.centerOnLocation) {
+      mapRef.current.centerOnLocation(locations[currentStep]);
+    }
+  }, [currentStep]);
 
   return (
     <div className="App">

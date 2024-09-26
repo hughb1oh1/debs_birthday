@@ -106,6 +106,20 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     });
   }, [locations, getRandomOffset]);
 
+  const centerOnLocation = useCallback((location) => {
+    if (mapRef.current) {
+      mapRef.current.setCenter({ lat: location.lat, lng: location.lng });
+      mapRef.current.setZoom(config.zoomLevels.destination);
+      guestMarkersRef.current.forEach(marker => {
+        const offset = getRandomOffset();
+        marker.setPosition({ 
+          lat: location.lat + offset.lat, 
+          lng: location.lng + offset.lng 
+        });
+      });
+    }
+  }, [getRandomOffset]);
+
   useImperativeHandle(ref, () => ({
     resetMap: () => {
       if (mapRef.current) {
@@ -121,8 +135,9 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
         currentPathRef.current = null;
         currentProgressRef.current = 0;
       }
-    }
-  }), [locations, getRandomOffset]);
+    },
+    centerOnLocation
+  }), [locations, getRandomOffset, centerOnLocation]);
 
   const mapLoad = useCallback((map) => {
     mapRef.current = map;
@@ -147,7 +162,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     createAllRoutePolylines(map);
     initializeGuestMarkers(map);
 
-    if (onMapLoad) onMapLoad({ resetMap: ref.current.resetMap });
+    if (onMapLoad) onMapLoad({ resetMap: ref.current.resetMap, centerOnLocation: ref.current.centerOnLocation });
   }, [locations, onMapLoad, ref, createAllRoutePolylines, initializeGuestMarkers]);
 
   const animateRoute = useCallback((path, duration) => {
@@ -193,36 +208,27 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
 
   useEffect(() => {
     const handleAnimation = async () => {
-      if (mapRef.current && locations && currentStep >= 0 && currentStep < locations.length) {
+      if (mapRef.current && locations && currentStep >= 0 && currentStep < locations.length - 1) {
         try {
-          const currentLocation = locations[currentStep];
+          const origin = locations[currentStep];
+          const destination = locations[currentStep + 1];
+          const result = await getDirections(origin, destination);
           
-          if (currentStep < locations.length - 1 && isAnimating) {
-            const nextLocation = locations[currentStep + 1];
-            const result = await getDirections(currentLocation, nextLocation);
+          if (isAnimating) {
             animateRoute(result.routes[0].overview_path, config.animationSpeed);
           } else {
-            // Center on the current location (including the last one)
-            mapRef.current.setCenter({ lat: currentLocation.lat, lng: currentLocation.lng });
-            mapRef.current.setZoom(config.zoomLevels.destination);
-
-            // Update guest markers position for the current (or last) location
-            guestMarkersRef.current.forEach(marker => {
-              const offset = getRandomOffset();
-              marker.setPosition({ 
-                lat: currentLocation.lat + offset.lat, 
-                lng: currentLocation.lng + offset.lng 
-              });
-            });
+            centerOnLocation(origin);
           }
         } catch (error) {
           console.error("Error during animation:", error);
         }
+      } else if (currentStep === locations.length - 1) {
+        centerOnLocation(locations[currentStep]);
       }
     };
 
     handleAnimation();
-  }, [currentStep, isAnimating, locations, getDirections, animateRoute, getRandomOffset]);
+  }, [currentStep, isAnimating, locations, getDirections, animateRoute, centerOnLocation]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
