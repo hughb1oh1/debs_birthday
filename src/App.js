@@ -47,9 +47,7 @@ function App() {
 
   const handleAnimationComplete = useCallback(() => {
     setIsAnimating(false);
-    if (currentStep < locations.length - 1) {
-      fetchVenueSummary(locations[currentStep + 1].name);
-    }
+    fetchVenueSummary(locations[currentStep].name);
   }, [currentStep]);
 
   const fetchVenueSummary = async (venueName) => {

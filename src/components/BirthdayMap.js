@@ -213,8 +213,6 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
           const destination = locations[currentStep];
           const result = await getDirections(origin, destination);
           
-          centerMapOnNextRoute(currentStep);
-
           if (isAnimating) {
             animateRoute(result.routes[0].overview_path, config.animationSpeed, currentProgressRef.current);
           } else if (currentPathRef.current) {
@@ -229,6 +227,10 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
               });
             });
           }
+
+          // Center map on current location
+          mapRef.current.setCenter({ lat: destination.lat, lng: destination.lng });
+          mapRef.current.setZoom(config.zoomLevels.destination);
         } catch (error) {
           console.error("Error during animation:", error);
         }
@@ -236,7 +238,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     };
 
     handleAnimation();
-  }, [currentStep, isAnimating, locations, getDirections, animateRoute, centerMapOnNextRoute, getRandomOffset]);
+  }, [currentStep, isAnimating, locations, getDirections, animateRoute, getRandomOffset]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
