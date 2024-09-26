@@ -108,7 +108,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
 
   const centerOnLocation = useCallback((location) => {
     if (mapRef.current) {
-      mapRef.current.setCenter({ lat: location.lat, lng: location.lng });
+      mapRef.current.panTo({ lat: location.lat, lng: location.lng });
       mapRef.current.setZoom(config.zoomLevels.destination);
       guestMarkersRef.current.forEach(marker => {
         const offset = getRandomOffset();
@@ -123,7 +123,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
   useImperativeHandle(ref, () => ({
     resetMap: () => {
       if (mapRef.current) {
-        mapRef.current.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
+        mapRef.current.panTo({ lat: locations[0].lat, lng: locations[0].lng });
         mapRef.current.setZoom(config.zoomLevels.initial);
         guestMarkersRef.current.forEach(marker => {
           const offset = getRandomOffset();
@@ -208,22 +208,19 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
 
   useEffect(() => {
     const handleAnimation = async () => {
-      if (mapRef.current && locations && currentStep >= 0 && currentStep < locations.length - 1) {
-        try {
-          const origin = locations[currentStep];
-          const destination = locations[currentStep + 1];
-          const result = await getDirections(origin, destination);
-          
-          if (isAnimating) {
+      if (mapRef.current && locations && currentStep >= 0 && currentStep < locations.length) {
+        const currentLocation = locations[currentStep];
+        centerOnLocation(currentLocation);
+
+        if (currentStep < locations.length - 1 && isAnimating) {
+          const nextLocation = locations[currentStep + 1];
+          try {
+            const result = await getDirections(currentLocation, nextLocation);
             animateRoute(result.routes[0].overview_path, config.animationSpeed);
-          } else {
-            centerOnLocation(origin);
+          } catch (error) {
+            console.error("Error during animation:", error);
           }
-        } catch (error) {
-          console.error("Error during animation:", error);
         }
-      } else if (currentStep === locations.length - 1) {
-        centerOnLocation(locations[currentStep]);
       }
     };
 
