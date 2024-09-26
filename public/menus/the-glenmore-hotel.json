@@ -1,7 +1,8 @@
 {
-    "items": [
-      { "name": "Burger", "price": 15 },
-      { "name": "Fish and Chips", "price": 18 },
-      { "name": "Caesar Salad", "price": 12 }
-    ]
-  }
+  "summary": "The Glenmore Hotel offers panoramic views of Sydney Harbour and the city skyline. Established in 1921, it boasts a rich history and a rooftop bar perfect for enjoying the sunset.",
+  "items": [
+    { "name": "Burger", "price": 15 },
+    { "name": "Fish and Chips", "price": 18 },
+    { "name": "Caesar Salad", "price": 12 }
+  ]
+}

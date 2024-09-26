@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import BirthdayMap from './components/BirthdayMap';
 import { PlayIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import './App.css';
+import config from './config.json';
 
 const locations = [
   { name: "Wynyard Station", lat: -33.8665, lng: 151.2074 },
@@ -14,8 +15,7 @@ const locations = [
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [selectedVenue, setSelectedVenue] = useState(null);
-  const [venueDetails, setVenueDetails] = useState(null);
+  const [venueSummary, setVenueSummary] = useState(null);
   const mapRef = useRef(null);
 
   const handlePlay = useCallback(() => {
@@ -28,6 +28,7 @@ function App() {
   const handleReset = useCallback(() => {
     setCurrentStep(0);
     setIsAnimating(false);
+    setVenueSummary(null);
     if (mapRef.current) {
       mapRef.current.resetMap();
     }
@@ -37,21 +38,33 @@ function App() {
     mapRef.current = mapInstance;
   }, []);
 
-  const handleMarkerClick = useCallback((location) => {
-    setSelectedVenue(location);
-    setTimeout(() => {
-      setVenueDetails({
-        name: location.name,
-        description: `This is a mock description for ${location.name}.`,
-        address: "123 Mock Street, Sydney NSW 2000",
-        rating: 4.5,
-      });
-    }, 300);
-  }, []);
-
   const handleAnimationComplete = useCallback(() => {
     setIsAnimating(false);
-  }, []);
+    fetchVenueSummary(locations[currentStep].name);
+  }, [currentStep]);
+
+  const fetchVenueSummary = async (venueName) => {
+    try {
+      const response = await fetch(`/menus/${venueName.toLowerCase().replace(/\s+/g, '-')}.json`);
+      const data = await response.json();
+      setVenueSummary(data.summary);
+    } catch (error) {
+      console.error('Error fetching venue summary:', error);
+      setVenueSummary('Venue summary not available');
+    }
+  };
+
+  useEffect(() => {
+    if (venueSummary) {
+      setTimeout(() => {
+        setVenueSummary(null);
+        if (currentStep < locations.length - 1) {
+          setIsAnimating(true);
+          setCurrentStep(prev => prev + 1);
+        }
+      }, config.pauseDuration);
+    }
+  }, [venueSummary, currentStep]);
 
   return (
     <div className="App">
@@ -61,7 +74,6 @@ function App() {
           locations={locations} 
           currentStep={currentStep}
           onMapLoad={onMapLoad}
-          onMarkerClick={handleMarkerClick}
           isAnimating={isAnimating}
           onAnimationComplete={handleAnimationComplete}
         />
@@ -74,14 +86,11 @@ function App() {
           <ArrowPathIcon className="h-8 w-8" />
         </button>
       </div>
-      {selectedVenue && venueDetails && (
+      {venueSummary && (
         <div className="modal">
           <div className="modal-content">
-            <h2>{venueDetails.name}</h2>
-            <p>{venueDetails.description}</p>
-            <p>Address: {venueDetails.address}</p>
-            <p>Rating: {venueDetails.rating}/5</p>
-            <button onClick={() => setSelectedVenue(null)}>Close</button>
+            <h2>{locations[currentStep].name}</h2>
+            <p>{venueSummary}</p>
           </div>
         </div>
       )}

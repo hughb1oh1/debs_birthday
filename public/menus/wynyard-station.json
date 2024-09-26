@@ -1,0 +1,8 @@
+{
+  "summary": "Wynyard Station is the start of our journey for those that caught the B1",
+  "items": [
+    { "name": "Burger", "price": 15 },
+    { "name": "Fish and Chips", "price": 18 },
+    { "name": "Caesar Salad", "price": 12 }
+  ]
+}

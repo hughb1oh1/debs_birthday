@@ -1,0 +1,8 @@
+{
+  "summary": "Tayim...",
+  "items": [
+    { "name": "Burger", "price": 15 },
+    { "name": "Fish and Chips", "price": 18 },
+    { "name": "Caesar Salad", "price": 12 }
+  ]
+}

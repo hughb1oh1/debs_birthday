@@ -15,7 +15,7 @@ const guests = [
   { name: "Guest 8", icon: "👴" }
 ];
 
-const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerClick, isAnimating, onAnimationComplete }, ref) => {
+const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating, onAnimationComplete }, ref) => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: config.GOOGLE_MAPS_API_KEY,
   });
@@ -30,16 +30,13 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerCli
     resetMap: () => {
       if (mapRef.current) {
         mapRef.current.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
-        mapRef.current.setZoom(15);
+        mapRef.current.setZoom(config.zoomLevels.initial);
         guestMarkersRef.current.forEach(marker => {
           const offset = getRandomOffset();
           marker.setPosition({ 
             lat: locations[0].lat + offset.lat, 
             lng: locations[0].lng + offset.lng 
           });
-        });
-        routePolylinesRef.current.forEach((polyline) => {
-          polyline.setOptions({ strokeOpacity: 0.5 });
         });
         lastAnimatedStepRef.current = -1;
       }
@@ -50,10 +47,10 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerCli
     mapRef.current = map;
     
     map.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
-    map.setZoom(15);
+    map.setZoom(config.zoomLevels.initial);
     
-    locations.forEach((location, index) => {
-      const marker = new window.google.maps.Marker({
+    locations.forEach((location) => {
+      new window.google.maps.Marker({
         position: { lat: location.lat, lng: location.lng },
         map: map,
         title: location.name,
@@ -64,21 +61,13 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerCli
           fontWeight: 'bold',
         },
       });
-
-      marker.addListener('click', () => {
-        const currentCenter = map.getCenter();
-        const currentZoom = map.getZoom();
-        onMarkerClick(location);
-        map.setCenter(currentCenter);
-        map.setZoom(currentZoom);
-      });
     });
 
     createAllRoutePolylines(map);
     initializeGuestMarkers(map);
 
     if (onMapLoad) onMapLoad({ resetMap: ref.current.resetMap });
-  }, [locations, onMapLoad, onMarkerClick, ref]);
+  }, [locations, onMapLoad, ref]);
 
   const initializeGuestMarkers = useCallback((map) => {
     guestMarkersRef.current = guests.map((guest) => {
@@ -90,7 +79,6 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerCli
         },
         map: map,
         title: guest.name,
-        draggable: true,
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
           scale: 15,
@@ -186,17 +174,17 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerCli
       if (mapRef.current && progress > 0 && progress < 1) {
         const midIndex = Math.floor(path.length / 2);
         mapRef.current.panTo(path[midIndex]);
+        mapRef.current.setZoom(config.zoomLevels.following);
       }
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
       } else {
         lastAnimatedStepRef.current = currentStep;
-        // Center map on the destination after animation completes
         if (mapRef.current) {
           const destination = locations[currentStep];
           mapRef.current.setCenter({ lat: destination.lat, lng: destination.lng });
-          mapRef.current.setZoom(16); // Adjust zoom level as needed
+          mapRef.current.setZoom(config.zoomLevels.destination);
         }
         onAnimationComplete();
       }
@@ -212,11 +200,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerCli
           const destination = locations[currentStep];
           const result = await getDirections(origin, destination);
           
-          routePolylinesRef.current.forEach((polyline, index) => {
-            polyline.setOptions({ strokeOpacity: index === currentStep - 1 ? 1.0 : 0.5 });
-          });
-
-          animateRoute(result.routes[0].overview_path, 5000);
+          animateRoute(result.routes[0].overview_path, config.animationSpeed);
         } catch (error) {
           console.error("Error during animation:", error);
         }
@@ -233,7 +217,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerCli
     <GoogleMap
       mapContainerStyle={mapContainerStyle}
       center={{ lat: locations[0].lat, lng: locations[0].lng }}
-      zoom={15}
+      zoom={config.zoomLevels.initial}
       onLoad={mapLoad}
     />
   );
