@@ -27,6 +27,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
   const currentPathRef = useRef(null);
   const currentProgressRef = useRef(0);
   const [selectedVenue, setSelectedVenue] = useState(null);
+  const [currentMapCenter, setCurrentMapCenter] = useState(mapCenter);
 
   const getRandomOffset = useCallback(() => {
     return {
@@ -110,8 +111,10 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
   useImperativeHandle(ref, () => ({
     resetMap: () => {
       if (mapRef.current) {
-        mapRef.current.panTo({ lat: locations[0].lat, lng: locations[0].lng });
+        const initialCenter = { lat: locations[0].lat, lng: locations[0].lng };
+        mapRef.current.panTo(initialCenter);
         mapRef.current.setZoom(config.zoomLevels.initial);
+        setCurrentMapCenter(initialCenter);
         guestMarkersRef.current.forEach(marker => {
           const offset = getRandomOffset();
           marker.setPosition({ 
@@ -125,9 +128,9 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     }
   }), [locations, getRandomOffset]);
 
-  const fetchVenueDetails = useCallback(async (venueName) => {
+  const fetchVenueDetails = useCallback(async (location) => {
     try {
-      const response = await fetch(`${process.env.PUBLIC_URL}/venue-menus/${venueName.toLowerCase().replace(/\s+/g, '-')}.json`);
+      const response = await fetch(`${process.env.PUBLIC_URL}/venue-menus/${location.name.toLowerCase().replace(/\s+/g, '-')}.json`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -145,7 +148,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
   const mapLoad = useCallback((map) => {
     mapRef.current = map;
     
-    map.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
+    map.setCenter(currentMapCenter);
     map.setZoom(config.zoomLevels.initial);
     
     locations.forEach((location) => {
@@ -156,7 +159,8 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
       });
 
       marker.addListener('click', () => {
-        fetchVenueDetails(location.name);
+        setCurrentMapCenter({ lat: location.lat, lng: location.lng });
+        fetchVenueDetails(location);
       });
 
       const labelContent = document.createElement('div');
@@ -177,8 +181,8 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
         const projection = this.getProjection();
         const position = projection.fromLatLngToDivPixel(marker.getPosition());
         labelContent.style.position = 'absolute';
-        labelContent.style.left = (position.x + 10) + 'px'; // Moved closer to the marker
-        labelContent.style.top = (position.y - 40) + 'px'; // Positioned above the marker
+        labelContent.style.left = (position.x + 10) + 'px';
+        labelContent.style.top = (position.y - 40) + 'px';
       }
       label.setMap(map);
     });
@@ -187,7 +191,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     initializeGuestMarkers(map);
 
     if (onMapLoad) onMapLoad(ref.current);
-  }, [locations, onMapLoad, ref, createAllRoutePolylines, initializeGuestMarkers, fetchVenueDetails]);
+  }, [locations, onMapLoad, ref, createAllRoutePolylines, initializeGuestMarkers, fetchVenueDetails, currentMapCenter]);
 
   const animateRoute = useCallback((path, duration) => {
     let startTime;
@@ -248,11 +252,10 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
   }, [currentStep, isAnimating, locations, getDirections, animateRoute]);
 
   useEffect(() => {
-    if (mapRef.current && mapCenter) {
-      mapRef.current.panTo({ lat: mapCenter.lat, lng: mapCenter.lng });
-      mapRef.current.setZoom(config.zoomLevels.destination);
+    if (mapRef.current) {
+      mapRef.current.panTo(currentMapCenter);
     }
-  }, [mapCenter]);
+  }, [currentMapCenter]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
@@ -261,7 +264,7 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     <>
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
-        center={{ lat: mapCenter.lat, lng: mapCenter.lng }}
+        center={currentMapCenter}
         zoom={config.zoomLevels.initial}
         onLoad={mapLoad}
       />
