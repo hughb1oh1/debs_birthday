@@ -192,11 +192,17 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerCli
         animationRef.current = requestAnimationFrame(animate);
       } else {
         lastAnimatedStepRef.current = currentStep;
+        // Center map on the destination after animation completes
+        if (mapRef.current) {
+          const destination = locations[currentStep];
+          mapRef.current.setCenter({ lat: destination.lat, lng: destination.lng });
+          mapRef.current.setZoom(16); // Adjust zoom level as needed
+        }
         onAnimationComplete();
       }
     };
     animationRef.current = requestAnimationFrame(animate);
-  }, [currentStep, onAnimationComplete, getRandomOffset]);
+  }, [currentStep, onAnimationComplete, getRandomOffset, locations]);
 
   useEffect(() => {
     const handleAnimation = async () => {
@@ -209,15 +215,6 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, onMarkerCli
           routePolylinesRef.current.forEach((polyline, index) => {
             polyline.setOptions({ strokeOpacity: index === currentStep - 1 ? 1.0 : 0.5 });
           });
-          
-          const currentZoom = mapRef.current.getZoom();
-
-          if (lastAnimatedStepRef.current !== currentStep) {
-            const bounds = new window.google.maps.LatLngBounds();
-            result.routes[0].overview_path.forEach((point) => bounds.extend(point));
-            mapRef.current.fitBounds(bounds);
-            mapRef.current.setZoom(currentZoom);
-          }
 
           animateRoute(result.routes[0].overview_path, 5000);
         } catch (error) {
