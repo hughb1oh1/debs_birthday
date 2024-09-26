@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useImperativeHandle, forwardRef, useState } from 'react';
-import { GoogleMap, useLoadScript } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, OverlayView } from '@react-google-maps/api';
 import config from '../config.json';
 
 const mapContainerStyle = { width: '100%', height: '100%' };
@@ -153,17 +153,34 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
         position: { lat: location.lat, lng: location.lng },
         map: map,
         title: location.name,
-        label: {
-          text: location.marker_label || location.name,
-          color: 'black',
-          fontSize: '14px',
-          fontWeight: 'bold',
-        },
       });
 
       marker.addListener('click', () => {
         fetchVenueDetails(location.name);
       });
+
+      const labelContent = document.createElement('div');
+      labelContent.innerHTML = location.marker_label || location.name;
+      labelContent.style.color = 'black';
+      labelContent.style.fontSize = '14px';
+      labelContent.style.fontWeight = 'bold';
+      labelContent.style.backgroundColor = 'white';
+      labelContent.style.padding = '5px';
+      labelContent.style.borderRadius = '3px';
+      labelContent.style.boxShadow = '1px 1px 3px rgba(0,0,0,0.3)';
+
+      const label = new window.google.maps.OverlayView();
+      label.onAdd = function() {
+        this.getPanes().overlayMouseTarget.appendChild(labelContent);
+      }
+      label.draw = function() {
+        const projection = this.getProjection();
+        const position = projection.fromLatLngToDivPixel(marker.getPosition());
+        labelContent.style.position = 'absolute';
+        labelContent.style.left = (position.x + 10) + 'px'; // Moved closer to the marker
+        labelContent.style.top = (position.y - 40) + 'px'; // Positioned above the marker
+      }
+      label.setMap(map);
     });
 
     createAllRoutePolylines(map);
