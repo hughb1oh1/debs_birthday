@@ -54,10 +54,13 @@ function App() {
 
   const fetchVenueSummary = async (venueName) => {
     try {
-      console.log(`opening /venue-menus/${venueName.toLowerCase().replace(/\s+/g, '-')}.json`)
-      const response = await fetch(`/venue-menus/${venueName.toLowerCase().replace(/\s+/g, '-')}.json`);
+      const response = await fetch(`${process.env.PUBLIC_URL}/venue-menus/${venueName.toLowerCase().replace(/\s+/g, '-')}.json`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new TypeError("Oops, we haven't got JSON!");
       }
       const data = await response.json();
       if (!data.summary) {
