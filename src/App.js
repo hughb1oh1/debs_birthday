@@ -24,7 +24,6 @@ function App() {
       fetchVenueSummary(locations[0].name);
     } else if (!isAnimating && currentStep < locations.length - 1) {
       setIsAnimating(true);
-      setCurrentStep(prev => prev + 1);
     }
   }, [currentStep, isAnimating]);
 
@@ -47,7 +46,10 @@ function App() {
 
   const handleAnimationComplete = useCallback(() => {
     setIsAnimating(false);
-    fetchVenueSummary(locations[currentStep].name);
+    if (currentStep < locations.length - 1) {
+      setCurrentStep(prev => prev + 1);
+      fetchVenueSummary(locations[currentStep + 1].name);
+    }
   }, [currentStep]);
 
   const fetchVenueSummary = async (venueName) => {
@@ -55,10 +57,6 @@ function App() {
       const response = await fetch(`${process.env.PUBLIC_URL}/venue-menus/${venueName.toLowerCase().replace(/\s+/g, '-')}.json`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new TypeError("Oops, we haven't got JSON!");
       }
       const data = await response.json();
       if (!data.summary) {
@@ -72,14 +70,12 @@ function App() {
   };
 
   useEffect(() => {
-    if (venueSummary) {
-      setTimeout(() => {
+    if (venueSummary && currentStep < locations.length - 1) {
+      const timer = setTimeout(() => {
         setVenueSummary(null);
-        if (currentStep < locations.length - 1) {
-          setIsAnimating(true);
-          setCurrentStep(prev => prev + 1);
-        }
+        setIsAnimating(true);
       }, config.pauseDuration);
+      return () => clearTimeout(timer);
     }
   }, [venueSummary, currentStep]);
 
@@ -109,7 +105,7 @@ function App() {
       {venueSummary && (
         <div className="modal">
           <div className="modal-content">
-            <h2>{locations[currentStep === -1 ? 0 : currentStep].name}</h2>
+            <h2>{locations[currentStep].name}</h2>
             <p>{venueSummary}</p>
           </div>
         </div>

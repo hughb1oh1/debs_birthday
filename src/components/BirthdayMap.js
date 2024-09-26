@@ -24,7 +24,6 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
   const guestMarkersRef = useRef([]);
   const routePolylinesRef = useRef([]);
   const animationRef = useRef(null);
-  const lastAnimatedStepRef = useRef(-1);
   const currentPathRef = useRef(null);
   const currentProgressRef = useRef(0);
 
@@ -119,7 +118,6 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
             lng: locations[0].lng + offset.lng 
           });
         });
-        lastAnimatedStepRef.current = -1;
         currentPathRef.current = null;
         currentProgressRef.current = 0;
       }
@@ -152,11 +150,11 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
     if (onMapLoad) onMapLoad({ resetMap: ref.current.resetMap });
   }, [locations, onMapLoad, ref, createAllRoutePolylines, initializeGuestMarkers]);
 
-  const animateRoute = useCallback((path, duration, startProgress = 0) => {
+  const animateRoute = useCallback((path, duration) => {
     let startTime;
     currentPathRef.current = path;
     const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp - (startProgress * duration);
+      if (!startTime) startTime = timestamp;
       const elapsed = timestamp - startTime;
       const progress = Math.min(elapsed / duration, 1);
       currentProgressRef.current = progress;
@@ -187,58 +185,39 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
       if (progress < 1 && isAnimating) {
         animationRef.current = requestAnimationFrame(animate);
       } else if (progress >= 1) {
-        lastAnimatedStepRef.current = currentStep;
         onAnimationComplete();
       }
     };
     animationRef.current = requestAnimationFrame(animate);
-  }, [currentStep, onAnimationComplete, getRandomOffset, isAnimating]);
-
-  const centerMapOnNextRoute = useCallback((currentStep) => {
-    if (currentStep < locations.length - 1 && mapRef.current) {
-      const currentLocation = locations[currentStep];
-      const nextLocation = locations[currentStep + 1];
-      const midLat = (currentLocation.lat + nextLocation.lat) / 2;
-      const midLng = (currentLocation.lng + nextLocation.lng) / 2;
-      mapRef.current.setCenter({ lat: midLat, lng: midLng });
-      mapRef.current.setZoom(config.zoomLevels.initial);
-    }
-  }, [locations]);
+  }, [isAnimating, onAnimationComplete, getRandomOffset]);
 
   useEffect(() => {
     const handleAnimation = async () => {
-      if (mapRef.current && locations && locations.length > 1 && currentStep > 0 && currentStep < locations.length) {
+      if (mapRef.current && locations && currentStep >= 0 && currentStep < locations.length - 1) {
         try {
-          const origin = locations[currentStep - 1];
-          const destination = locations[currentStep];
+          const origin = locations[currentStep];
+          const destination = locations[currentStep + 1];
           const result = await getDirections(origin, destination);
           
           if (isAnimating) {
-            animateRoute(result.routes[0].overview_path, config.animationSpeed, currentProgressRef.current);
-          } else if (currentPathRef.current) {
-            // If animation is paused, update guest positions without animating
-            guestMarkersRef.current.forEach((marker) => {
-              const pathIndex = Math.floor(currentProgressRef.current * (currentPathRef.current.length - 1));
-              const currentPoint = currentPathRef.current[pathIndex];
-              const offset = getRandomOffset();
-              marker.setPosition({ 
-                lat: currentPoint.lat() + offset.lat, 
-                lng: currentPoint.lng() + offset.lng 
-              });
-            });
+            animateRoute(result.routes[0].overview_path, config.animationSpeed);
+          } else {
+            // If not animating, center the map on the current location
+            mapRef.current.setCenter({ lat: origin.lat, lng: origin.lng });
+            mapRef.current.setZoom(config.zoomLevels.destination);
           }
-
-          // Center map on current location
-          mapRef.current.setCenter({ lat: destination.lat, lng: destination.lng });
-          mapRef.current.setZoom(config.zoomLevels.destination);
         } catch (error) {
           console.error("Error during animation:", error);
         }
+      } else if (currentStep === locations.length - 1) {
+        // Center on the last location
+        mapRef.current.setCenter({ lat: locations[currentStep].lat, lng: locations[currentStep].lng });
+        mapRef.current.setZoom(config.zoomLevels.destination);
       }
     };
 
     handleAnimation();
-  }, [currentStep, isAnimating, locations, getDirections, animateRoute, getRandomOffset]);
+  }, [currentStep, isAnimating, locations, getDirections, animateRoute]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
