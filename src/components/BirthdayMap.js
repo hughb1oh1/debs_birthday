@@ -193,31 +193,36 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
 
   useEffect(() => {
     const handleAnimation = async () => {
-      if (mapRef.current && locations && currentStep >= 0 && currentStep < locations.length - 1) {
+      if (mapRef.current && locations && currentStep >= 0 && currentStep < locations.length) {
         try {
-          const origin = locations[currentStep];
-          const destination = locations[currentStep + 1];
-          const result = await getDirections(origin, destination);
+          const currentLocation = locations[currentStep];
           
-          if (isAnimating) {
+          if (currentStep < locations.length - 1 && isAnimating) {
+            const nextLocation = locations[currentStep + 1];
+            const result = await getDirections(currentLocation, nextLocation);
             animateRoute(result.routes[0].overview_path, config.animationSpeed);
           } else {
-            // If not animating, center the map on the current location
-            mapRef.current.setCenter({ lat: origin.lat, lng: origin.lng });
+            // Center on the current location (including the last one)
+            mapRef.current.setCenter({ lat: currentLocation.lat, lng: currentLocation.lng });
             mapRef.current.setZoom(config.zoomLevels.destination);
+
+            // Update guest markers position for the current (or last) location
+            guestMarkersRef.current.forEach(marker => {
+              const offset = getRandomOffset();
+              marker.setPosition({ 
+                lat: currentLocation.lat + offset.lat, 
+                lng: currentLocation.lng + offset.lng 
+              });
+            });
           }
         } catch (error) {
           console.error("Error during animation:", error);
         }
-      } else if (currentStep === locations.length - 1) {
-        // Center on the last location
-        mapRef.current.setCenter({ lat: locations[currentStep].lat, lng: locations[currentStep].lng });
-        mapRef.current.setZoom(config.zoomLevels.destination);
       }
     };
 
     handleAnimation();
-  }, [currentStep, isAnimating, locations, getDirections, animateRoute]);
+  }, [currentStep, isAnimating, locations, getDirections, animateRoute, getRandomOffset]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps</div>;
