@@ -1,0 +1,12 @@
+{
+  "summary": "Belgian Chocolate Café is a dessert lover's paradise, offering a range of decadent Belgian chocolate creations, artisanal coffees, and indulgent treats in a cozy café setting.",
+  "details": {
+    "heading": "Belgian Chocolate Café",
+    "content": "<p>Indulge in the sweet luxury of famous Belgian chocolates and desserts.</p><ul><li>Signature Belgian chocolate desserts</li><li>Gourmet coffee and hot chocolate</li><li>Variety of cakes and pastries</li><li>Chocolate gift boxes available</li></ul><p>View their tempting menu on the <a href='https://belgiancafe.com.au/' target='_blank'>Belgian Choclate Café website</a>.</p>"
+  },
+  "items": [
+    { "name": "Belgian Chocolate Fondue", "price": 25 },
+    { "name": "Signature Hot Chocolate", "price": 8 },
+    { "name": "Chocolate Hazelnut Cake", "price": 12 }
+  ]
+}

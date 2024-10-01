@@ -1,0 +1,12 @@
+{
+  "summary": "Sake Restaurant & Bar offers an innovative spin on Japanese cuisine, blending traditional flavors with modern techniques in a stylish, contemporary setting in The Rocks.",
+  "details": {
+    "heading": "Sake Restaurant & Bar",
+    "content": "<p>Experience the fusion of traditional and contemporary Japanese cuisine at Sake Restaurant & Bar.</p><ul><li>Innovative Japanese dishes</li><li>Extensive sake and cocktail menu</li><li>Vegetarian, seafood, and meat options</li><li>Sleek, modern dining atmosphere</li></ul><p>Explore their menu and make reservations on their <a href='https://sakerestaurant.com.au' target='_blank'>website</a>.</p>"
+  },
+  "items": [
+    { "name": "Sashimi Platter", "price": 45 },
+    { "name": "Wagyu Beef Tataki", "price": 38 },
+    { "name": "Vegetarian Sushi Roll", "price": 22 }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "summary": "The Rocks Markets is a vibrant weekend destination in Sydney, offering a diverse array of local artisan crafts, gourmet foods, and unique souvenirs in a historic setting.",
+  "details": {
+    "heading": "The Rocks Markets",
+    "content": "<p>Explore the charm of The Rocks Markets, where history meets contemporary creativity.</p><ul><li>Over 200 eclectic stalls</li><li>Local artisans and designers</li><li>Gourmet street food options</li><li>Live music and entertainment</li></ul><p>Discover more about the markets on the <a href='https://therocks.com/see-do/the-rocks-markets' target='_blank'>official website</a>.</p>"
+  },
+  "items": [
+    { "name": "Handmade Jewelry", "price": 30 },
+    { "name": "Aussie Street Food", "price": 15 },
+    { "name": "Local Art Prints", "price": 25 }
+  ]
+}

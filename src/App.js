@@ -4,12 +4,59 @@ import { PlayIcon, StopIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import './App.css';
 import config from './config.json';
 
-const locations = [
+const locations_version_1 = [
   { name: "Wynyard Station", lat: -33.8665, lng: 151.2074, marker_label: "Wynyard<br/>Station" },
   { name: "The Glenmore Hotel", lat: -33.8599, lng: 151.2090, marker_label: "The Glenmore<br/>Hotel" },
   { name: "Maybe Sammy", lat: -33.8614, lng: 151.2082, marker_label: "Maybe<br/>Sammy" },
   { name: "Tayim", lat: -33.8608, lng: 151.2082, marker_label: "Tayim"},
   { name: "La Renaissance Patisserie", lat: -33.8593, lng: 151.2080, marker_label: "La Renaissance<br/>Patisserie" }
+ ];
+
+const locations = [
+  { name: "Wynyard Station", 
+    lat: -33.8665, 
+    lng: 151.2074, 
+    marker_label: "Wynyard<br/>Station",
+    description: "Pre-dinner drinks with views",
+    website: "theglenmore.com.au",
+    time: "2:15 PM"
+ },
+  { 
+    name: "The Glenmore Hotel", 
+    lat: -33.8599, 
+    lng: 151.2090, 
+    marker_label: "The Glenmore<br/>Hotel",
+    description: "Pre-dinner drinks with views",
+    website: "theglenmore.com.au",
+    time: "2:15 PM"
+  },
+  { 
+    name: "The Rocks Markets", 
+    lat: -33.8595, 
+    lng: 151.2085, 
+    marker_label: "The Rocks<br/>Markets",
+    description: "Explore local artisans and foods",
+    website: "therocks.com/see-do/the-rocks-markets",
+    time: "4:00 PM"
+  },
+  { 
+    name: "Sake Restaurant and Bar", 
+    lat: -33.8614, 
+    lng: 151.2087, 
+    marker_label: "Sake Restaurant<br/>& Bar",
+    description: "Japanese cuisine with vegetarian, seafood, and meat options",
+    website: "sakerestaurant.com.au",
+    time: "6:00 PM"
+  },
+  { 
+    name: "Belgian Chocolate Café", 
+    lat: -33.8605, 
+    lng: 151.2095, 
+    marker_label: "Guylian Belgian<br/>Chocolate Café",
+    description: "Desserts and coffee",
+    website: "guyliancafe.com.au",
+    time: "8:30 PM"
+  }
 ];
 
 function App() {
