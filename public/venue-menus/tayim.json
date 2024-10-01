@@ -1,8 +1,8 @@
 {
-  "summary": "Tayim...",
+  "summary": "Tayim offers a modern Middle Eastern dining experience in the heart of The Rocks. Set in a heritage sandstone building, it combines traditional flavors with contemporary Australian cuisine.",
   "details": {
     "heading": "Tayim",
-    "content": "<p>Tayim</p>"
+    "content": "<p>Tayim blends Middle Eastern traditions with modern Australian cuisine in a historic setting.</p><ul><li>Modern Middle Eastern cuisine</li><li>Heritage sandstone building</li><li>Intimate dining atmosphere</li></ul><p>Explore their menu on the <a href='https://tayim.com.au' target='_blank'>official website</a>.</p>"
   },
   "items": [
     { "name": "Burger", "price": 15 },

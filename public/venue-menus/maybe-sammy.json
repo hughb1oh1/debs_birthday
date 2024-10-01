@@ -1,8 +1,8 @@
 {
-  "summary": "Maybe Sammy....",
+  "summary": "Maybe Sammy is an award-winning cocktail bar inspired by 1950s Vegas glamour. Known for its innovative cocktails and sophisticated ambiance, it offers a unique experience in The Rocks area of Sydney.",
   "details": {
     "heading": "Maybe Sammy",
-    "content": "<p>Established in </p>"
+    "content": "<p>Maybe Sammy brings the spirit of Las Vegas to Sydney with its innovative cocktails and sophisticated ambiance.</p><ul><li>Award-winning cocktail bar</li><li>1950s Vegas-inspired decor</li><li>Expertly crafted signature drinks</li></ul><p>Discover more on their <a href='https://maybesammy.com' target='_blank'>website</a>.</p>"
   },
   "items": [
     { "name": "Burger", "price": 15 },

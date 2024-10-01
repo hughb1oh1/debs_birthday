@@ -1,8 +1,8 @@
 {
-  "summary": "Wynyard Station is the start of our journey for those that caught the B1",
+  "summary": "Wynyard Station is the start of our journey for those that caught the B1. This station is a major CBD transport hub and provides easy access to trains, buses, and is within walking distance of many city attractions.",
   "details": {
     "heading": "Wynyard Station",
-    "content": "<p>Established in 1921, </p>"
+    "content": "<p>Wynyard Station is a key transport interchange in Sydney's CBD, connecting commuters to various parts of the city.</p><ul><li>Major train and bus hub</li><li>Located in Sydney CBD</li><li>Close to city attractions</li></ul><p>Check transport information on the <a href='https://transportnsw.info' target='_blank'>Transport for NSW website</a>.</p>"
   },
   "items": [
     { "name": "Burger", "price": 15 },

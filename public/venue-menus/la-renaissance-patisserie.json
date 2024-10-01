@@ -1,8 +1,8 @@
 {
-  "summary": "The La Renaissance Patisserie ....",
+  "summary": "La Renaissance Patisserie is a slice of Paris in Sydney's The Rocks. Renowned for its exquisite French pastries and cakes, it offers a authentic taste of French culinary artistry.",
   "details": {
-    "heading": "The La Renaissance Patisserie",
-    "content": "<p>Established in 1921 .</p>"
+    "heading": "La Renaissance Patisserie",
+    "content": "<p>La Renaissance brings the flavors of France to Sydney with its artisanal pastries and cakes.</p><ul><li>Authentic French pastries</li><li>Artisanal cakes and chocolates</li><li>Charming Parisian atmosphere</li></ul><p>View their delectable offerings on their <a href='https://larenaissance.com.au' target='_blank'>website</a>.</p>"
   },
   "items": [
     { "name": "Burger", "price": 15 },
