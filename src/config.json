@@ -6,7 +6,7 @@
     "destination": 18
   },
   "animationSpeed": 5000,
-  "pauseDuration": 5000,
+  "pauseDuration": 7000,
   "startDialog": {
     "show": true,
     "heading": "Welcome to Deb's 60th birthday",

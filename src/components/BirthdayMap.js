@@ -5,15 +5,17 @@ import config from '../config';
 const mapContainerStyle = { width: '100%', height: '100%' };
 
 const guests = [
-  { name: "Guest 1", icon: "👩" },
-  { name: "Guest 2", icon: "👨" },
-  { name: "Guest 3", icon: "👩‍🦰" },
-  { name: "Guest 4", icon: "👨‍🦳" },
-  { name: "Guest 5", icon: "👩‍🦱" },
-  { name: "Guest 6", icon: "👨‍🦰" },
-  { name: "Guest 7", icon: "👵" },
-  { name: "Guest 8", icon: "👴" }
-];
+  { name: "Deb", icon: "👩‍🦰" },
+  { name: "Hugh", icon: "🙋‍♂️" },
+  { name: "Steve", icon: "👨‍🦳" },
+  { name: "Stef", icon: "🙍‍♀️" },
+  { name: "David", icon: "🙋‍♂️" },
+  { name: "Bindi", icon: "🤷🏻‍♂️" },
+  { name: "Richard", icon: "🧘‍♂️" },
+  { name: "Kate", icon: "🙆‍♀️" },
+  { name: "Judy", icon: "🙋‍♀️" },
+  { name: "Mike", icon: "🙋‍♂️" }
+ ];
 
 const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating, onAnimationComplete, mapCenter }, ref) => {
   const { isLoaded, loadError } = useLoadScript({
@@ -164,10 +166,12 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
         title: location.name,
       });
 
-      marker.addListener('click', () => {
+      const handleClick = () => {
         setCurrentMapCenter({ lat: location.lat, lng: location.lng });
         fetchVenueDetails(location);
-      });
+      };
+
+      marker.addListener('click', handleClick);
 
       const labelContent = document.createElement('div');
       labelContent.innerHTML = location.marker_label || location.name;
@@ -178,6 +182,10 @@ const BirthdayMap = forwardRef(({ locations, currentStep, onMapLoad, isAnimating
       labelContent.style.padding = '5px';
       labelContent.style.borderRadius = '3px';
       labelContent.style.boxShadow = '1px 1px 3px rgba(0,0,0,0.3)';
+      labelContent.style.cursor = 'pointer';
+
+      // Add click event listener to the label
+      labelContent.addEventListener('click', handleClick);
 
       const label = new window.google.maps.OverlayView();
       label.onAdd = function() {
